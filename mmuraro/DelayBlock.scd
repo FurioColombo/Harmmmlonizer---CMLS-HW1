@@ -1,3 +1,12 @@
+// DELAY BLOCK IMPLEMENTATION
+
+/* The code implements the delay block of the harmonizer. 
+Two different feedback nodes are implemented within the DelayLine SynthDef 
+so that it's possible for the user to control the delay to the left channel and the right channel separately. 
+In addition to this, I implemented a GUI to control all the available parameters 
+and test the different setup the user can create. 
+Moreover, a bus implementing a reverb node is available for the delayed signal. */
+
 s.boot;
 s.quit;
 
