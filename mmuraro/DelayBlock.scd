@@ -41,15 +41,15 @@ SynthDef(\delayLine, {
 	inputSignal = In.ar(inputBus, 1);
 	feedbackNodeL = FbNode(numChannels: 1, maxdelaytime: delayTimeL, interpolation: 2);
 	feedbackNodeR = FbNode(numChannels: 1, maxdelaytime: delayTimeR, interpolation: 2);
-	delayedSignalL = inputSignal + feedbackNodeL.delay;
-	delayedSignalR = inputSignal + feedbackNodeR.delay;
-	feedbackSignalL = delayedSignalL * feedbackAmount + inputSignal;
-	feedbackSignalR = delayedSignalR * feedbackAmount + inputSignal;
+	delayedSignalL = feedbackNodeL.delay;
+	delayedSignalR = feedbackNodeR.delay;
+	feedbackSignalL = delayedSignalL * feedbackAmount + (inputSignal * 0.4);
+	feedbackSignalR = delayedSignalR * feedbackAmount + (inputSignal * 0.4);
 
 	feedbackNodeL.write(feedbackSignalL);
 	feedbackNodeR.write(feedbackSignalR);
 
-	mixedOutputSignal = Mix.ar([delayedSignalL, delayedSignalR]);
+	mixedOutputSignal = Mix.ar([delayedSignalL, delayedSignalR, inputSignal * 0.8]);
 
 	Out.ar(effectBus, mixedOutputSignal * reverbWet);
 	Out.ar([0, 1], inputSignal * outputDry);
