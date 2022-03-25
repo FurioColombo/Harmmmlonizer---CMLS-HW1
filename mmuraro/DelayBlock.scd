@@ -41,8 +41,8 @@ SynthDef(\delayLine, {
 	inputSignal = In.ar(inputBus, 1);
 	feedbackNodeL = FbNode(numChannels: 1, maxdelaytime: delayTimeL, interpolation: 2);
 	feedbackNodeR = FbNode(numChannels: 1, maxdelaytime: delayTimeR, interpolation: 2);
-	delayedSignalL = feedbackNodeL.delay;
-	delayedSignalR = feedbackNodeR.delay;
+	delayedSignalL = feedbackNodeL.delay * delayWetL;
+	delayedSignalR = feedbackNodeR.delay * delayWetR;
 	feedbackSignalL = delayedSignalL * feedbackAmount + (inputSignal * 0.4);
 	feedbackSignalR = delayedSignalR * feedbackAmount + (inputSignal * 0.4);
 
@@ -53,8 +53,8 @@ SynthDef(\delayLine, {
 
 	Out.ar(effectBus, mixedOutputSignal * reverbWet);
 	Out.ar([0, 1], inputSignal * outputDry);
-	Out.ar(0, delayedSignalL * delayWetL);
-	Out.ar(1, delayedSignalR * delayWetR);
+	Out.ar(0, delayedSignalL);
+	Out.ar(1, delayedSignalR);
 	// Out.ar to write on the input bus of the Harmonizer so that we can route the feedback signal before the pitch shifter
 
 }).add;
@@ -132,7 +132,7 @@ g = ControlSpec.new(0, 1, \lin);
 knobReverbWet = EZKnob(w, Rect(920, 100, 100, 100), "Reverb Wet", g, initVal: 0.25);
 
 knobReverbWet.action_({
-	d.set(\delayWetR, knobReverbWet.value);
+	d.set(\reverbWet, knobReverbWet.value);
 });
 
 w.front;
