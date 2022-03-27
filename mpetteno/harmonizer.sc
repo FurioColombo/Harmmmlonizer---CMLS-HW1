@@ -14,7 +14,7 @@ SynthDef.new(\testInputSignalGenerator, {
 );
 
 (
-SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, wet = 0, stereoPan = 0.0, pitchRatio = 0, delayTime = 0.014, feedbackAmount = 0;
+SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, stereoPan = 0.0, pitchRatio = 0, delayTime = 0.014, feedbackAmount = 0;
 
 	var input, voiceOutputSignal, feedbackNode, delayedSignal, feedbackSignal, pitchShiftedSignal;
 
@@ -56,7 +56,7 @@ SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, wet = 0
 
 	feedbackNode.write(feedbackSignal);
 	Out.ar(feedbackBus, feedbackSignal);
-	Out.ar(voiceOutputBus, Pan2.ar(voiceOutputSignal*wet, stereoPan));
+	Out.ar(voiceOutputBus, Pan2.ar(voiceOutputSignal, stereoPan));
 }).add;
 );
 
@@ -72,7 +72,7 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0;
 );
 
 (
-var voiceChannelsGroup, voiceChannels, outputMixer, window, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos;
+var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle;
 
 x = Synth(\testInputSignalGenerator);
 voiceChannelsGroup = ParGroup.after(x);
@@ -84,8 +84,10 @@ outputMixer = Synth.after(voiceChannelsGroup, \mixer);
 
 // GUI
 Window.closeAll;
-voiceSectionYOffset = 100;
-voiceSectionMargin = 30;
+windowWidth = 1225;
+windowHeight = 800;
+titleWidth = 200;
+titleHeight = 70;
 knobWidth = 125;
 knobHeight = knobWidth;
 sliderWidth = 300;
@@ -94,40 +96,81 @@ margin = 5@5;
 
 window = Window(
 	name: "Harmonizer",
-	bounds: Rect(100, 100, 1055, 700),
-	resizable: true,
+	bounds: Rect(100, 100, windowWidth, windowHeight),
+	resizable: false,
 	border: true,
 	scroll: false
 );
 
+/* ----- Master Section ----- */
+currentXPos = (1200 - titleWidth)/2;
+currentYPos = 50;
+masterTitle = StaticText(
+	parent: window,
+	bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
+);
+masterTitle.string = "Master";
+masterTitle.font = Font("Monaco", 30);
+masterTitle.align = \center;
+currentYPos = currentYPos + titleHeight;
+/* ----- Master Gain Knob ----- */
+currentXPos = 1200/2 - knobWidth;
+EZKnob(
+	parent: window,
+	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+	label: "Gain",
+	controlSpec: ControlSpec.new(0, 1, \lin),
+	action: {arg thisKnob; outputMixer.set(\master, thisKnob.value)},
+	initVal: nil,
+	initAction: false,
+	labelWidth: 60,
+	// knobSize: an instance of Point,
+	unitWidth: 0,
+	labelHeight: 20,
+	layout: \vert2,
+	// gap: an instance of Point,
+	margin: margin
+);
+/* ----- Dry/Wet Knob ----- */
+currentXPos = currentXPos + knobWidth;
+EZKnob(
+	parent: window,
+	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+	label: "Dry/Wet",
+	controlSpec: ControlSpec.new(0, 1, \lin),
+	action: {arg thisKnob; outputMixer.set(\wet, thisKnob.value)},
+	initVal: nil,
+	initAction: false,
+	labelWidth: 60,
+	// knobSize: an instance of Point,
+	unitWidth: 0,
+	labelHeight: 20,
+	layout: \vert2,
+	// gap: an instance of Point,
+	margin: margin
+);
+
+/* ----- Voice Channels Section ----- */
 voiceChannels.do({ arg voiceChannel, index;
 
-	var xOffset, pitchfbModeCheckbox, crossfbModeCheckbox;
-	xOffset = voiceSectionMargin + (400*index);
+	var title, pitchfbModeCheckbox, crossfbModeCheckbox;
+	xOffset = 55 + (400*index);
+
+	/* ----- Title ----- */
+	currentXPos = xOffset + ((sliderWidth - titleWidth)/2);
+	currentYPos = 280;
+	title = StaticText(
+		parent: window,
+		bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
+	);
+	title.string = "Voice " ++ (index + 1);
+	title.font = Font("Monaco", 30);
+	title.align = \center;
 
 	/* ----- First Line ----- */
-	currentXPos = xOffset;
-	currentYPos = voiceSectionYOffset;
-	/* ----- Dry/Wet Knob ----- */
-	currentXPos = currentXPos + (sliderWidth/2 - knobWidth);
-	EZKnob(
-		parent: window,
-		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-		label: "Dry/Wet",
-		controlSpec: ControlSpec.new(0, 1, \lin),
-		action: {arg thisKnob; voiceChannel.set(\wet, thisKnob.value)},
-		initVal: nil,
-		initAction: false,
-		labelWidth: 60,
-		// knobSize: an instance of Point,
-		unitWidth: 0,
-		labelHeight: 20,
-		layout: \vert2,
-		// gap: an instance of Point,
-		margin: margin
-	);
-	/* ----- Gain Knob ----- */
-	currentXPos = currentXPos + knobWidth;
+	currentYPos = currentYPos + titleHeight;
+	/* ----- Amount Knob ----- */
+	currentXPos = xOffset + (sliderWidth/2 - knobWidth);
 	EZKnob(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
@@ -144,11 +187,8 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
-
-	/* ----- Second Line ----- */
-	currentXPos = xOffset + (sliderWidth - knobWidth)/2 + (margin.x*2);
-	currentYPos = voiceSectionYOffset + knobWidth;
 	/* ----- Stereo Pan Knob ----- */
+	currentXPos = currentXPos + knobWidth;
 	EZKnob(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
@@ -167,9 +207,9 @@ voiceChannels.do({ arg voiceChannel, index;
 	);
 
 	/* ----- Third Line ----- */
-	currentXPos = xOffset;
 	currentYPos = currentYPos + knobHeight + 30;
 	/* ----- Pitch Ratio Slider ----- */
+	currentXPos = xOffset;
 	EZSlider(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, sliderWidth, sliderHeight),
@@ -189,9 +229,9 @@ voiceChannels.do({ arg voiceChannel, index;
 	);
 
 	/* ----- Fourth Line ----- */
-	currentXPos = xOffset  + (sliderWidth/2 - knobWidth);
 	currentYPos = currentYPos + sliderHeight + 30;
 	/* ----- Delay Time Knob ----- */
+	currentXPos = xOffset  + (sliderWidth/2 - knobWidth);
 	EZKnob(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
@@ -240,7 +280,7 @@ voiceChannels.do({ arg voiceChannel, index;
 });
 
 window.front;
-//window.onClose_({x.free; voiceChannelsGroup.free; outputMixer.free;});
+window.onClose_({x.free; voiceChannelsGroup.free; outputMixer.free;});
 
 )
 
