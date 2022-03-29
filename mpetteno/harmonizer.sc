@@ -1,7 +1,7 @@
 (
 ~inputAudioBus = Bus.audio(s, 1);
-~voiceOutputBuses = Array.fill(3, {arg index; Bus.audio(s, 2)});
-~feedbackBuses = Array.fill(3, {arg index; Bus.audio(s, 1)});
+~voiceOutputBuses = Array.fill(3, {arg i; Bus.audio(s, 2)});
+~feedbackBuses = Array.fill(3, {arg i; Bus.audio(s, 1)});
 );
 
 (
@@ -14,16 +14,16 @@ SynthDef.new(\testInputSignalGenerator, {
 );
 
 (
-SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, stereoPan = 0.0, pitchRatio = 0, delayTime = 0.014, feedbackAmount = 0;
+SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 0.0, stereoPan = 0.0, pitchRatio = 0, delayTime = 0.014, feedbackAmount = 0.0;
 
 	var input, voiceOutputSignal, feedbackNode, delayedSignal, feedbackSignal, pitchShiftedSignal;
 
 	input = In.ar(~inputAudioBus, 1);
-	feedbackNode = FbNode(1, delayTime);
+	feedbackNode = FbNode(numChannels: 1, maxdelaytime: delayTime, interpolation: 2);
 	delayedSignal = feedbackNode.delay;
 
 	if (false, {
-		~feedbackBuses.do({ arg item, index;
+		~feedbackBuses.do({ arg item, i;
 			if (item.index !== feedbackBus, {
 				var crossFeedbackSignal = In.ar(item, 1);
 				delayedSignal = delayedSignal + feedbackAmount*crossFeedbackSignal;
@@ -78,9 +78,9 @@ var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowH
 
 x = Synth(\testInputSignalGenerator);
 voiceChannelsGroup = ParGroup.after(x);
-voiceChannels = Array.fill(3, { arg index;
+voiceChannels = Array.fill(3, { arg i;
 	Synth.head(voiceChannelsGroup, \voiceChannel,
-		[\voiceOutputBus, ~voiceOutputBuses[index].index, \feedbackBus, ~feedbackBuses[index].index]);
+		[\voiceOutputBus, ~voiceOutputBuses[i].index, \feedbackBus, ~feedbackBuses[i].index]);
 });
 outputMixer = Synth.after(voiceChannelsGroup, \mixer);
 
