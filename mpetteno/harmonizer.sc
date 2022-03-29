@@ -7,8 +7,8 @@
 (
 SynthDef.new(\testInputSignalGenerator, {
 	Out.ar(
-		bus: [0, ~inputAudioBus],
-		channelsArray: SinOsc.ar(200) * Line.kr(1,0,2)
+		bus: ~inputAudioBus,
+		channelsArray: SinOsc.ar(200) * Line.kr(1,0,120)
 	);
 }).add;
 );
@@ -35,7 +35,7 @@ SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, stereoP
 		{ pitchShiftedSignal = PitchShift.ar(
 			in: input + delayedSignal,
 			windowSize: 0.075,
-			pitchRatio: pitchRatio,
+			pitchRatio: (1.059463094).pow(pitchRatio),
 			pitchDispersion: 0.0001,
 			timeDispersion: 0.075,
 			mul: gain
@@ -45,7 +45,7 @@ SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, stereoP
 		{ pitchShiftedSignal = PitchShift.ar(
 			in: input,
 			windowSize: 0.075,
-			pitchRatio: pitchRatio,
+			pitchRatio: (1.059463094).pow(pitchRatio),
 			pitchDispersion: 0.0001,
 			timeDispersion: 0.075,
 			mul: gain
@@ -62,10 +62,12 @@ SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, stereoP
 
 (
 SynthDef.new(\mixer, { arg master = 1, wet = 0;
-	var input, stereoOutput;
-	input = Pan2.ar(In.ar(~inputAudioBus, 1), 0);
-	stereoOutput = Array.fill(2, { arg index;
-		Mix.new([input[index], In.ar(~voiceOutputBuses[index].index + index, 1)]);
+	var input, stereoOutput, firstBusIndex;
+	input = (1 - wet) * Pan2.ar(In.ar(~inputAudioBus, 1), 0);
+	stereoOutput = Array.fill(2, { arg i;
+		Mix.new([input[i], wet * In.ar(~voiceOutputBuses.collect({ arg item, j;
+			item.index + i;
+		}), 1)]);
 	});
 	Out.ar([0, 1], master * stereoOutput);
 }).add;
@@ -119,7 +121,7 @@ EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Gain",
-	controlSpec: ControlSpec.new(0, 1, \lin),
+	controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 1.0),
 	action: {arg thisKnob; outputMixer.set(\master, thisKnob.value)},
 	initVal: nil,
 	initAction: false,
@@ -137,7 +139,7 @@ EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Dry/Wet",
-	controlSpec: ControlSpec.new(0, 1, \lin),
+	controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, default: 0.5),
 	action: {arg thisKnob; outputMixer.set(\wet, thisKnob.value)},
 	initVal: nil,
 	initAction: false,
@@ -175,7 +177,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Gain",
-		controlSpec: ControlSpec.new(0, 1, \lin),
+		controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\gain, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
@@ -193,7 +195,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Pan",
-		controlSpec: ControlSpec(-1, 1, \lin, default: 0),
+		controlSpec: ControlSpec.new(minval: -1.0, maxval: 1.0, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\stereoPan, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
@@ -214,7 +216,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, sliderWidth, sliderHeight),
 		label: "Pitch Ratio",
-		controlSpec: ControlSpec(-24, 24, \lin, 1, 0, \st),
+		controlSpec: ControlSpec(minval: -24, maxval: 24, warp: \lin, step: 1, default: 0, units: \st),
 		action: {arg thisSlider; voiceChannel.set(\pitchRatio, thisSlider.value)},
 		initVal: nil,
 		initAction: false,
@@ -236,7 +238,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Delay Time",
-		controlSpec: ControlSpec.new(0, 1, \lin),
+		controlSpec: ControlSpec.new(minval: 0.014, maxval: 2.0, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\delayTime, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
@@ -259,7 +261,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Feedback",
-		controlSpec: ControlSpec.new(0, 1, \lin),
+		controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\feedbackAmount, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
