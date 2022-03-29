@@ -2,6 +2,7 @@
 ~inputAudioBus = Bus.audio(s, 1);
 ~voiceOutputBuses = Array.fill(3, {arg i; Bus.audio(s, 2)});
 ~feedbackBuses = Array.fill(3, {arg i; Bus.audio(s, 1)});
+~maxDelayTime = 2.0;
 );
 
 (
@@ -14,13 +15,22 @@ SynthDef.new(\testInputSignalGenerator, {
 );
 
 (
+SynthDef.new(\soundIn, {
+	Out.ar(
+		bus: ~inputAudioBus,
+		channelsArray: SoundIn.ar(0);
+	);
+}).add;
+);
+
+(
 SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 0.0, stereoPan = 0.0, pitchRatio = 0, delayTime = 0.014, feedbackAmount = 0.0;
 
 	var input, voiceOutputSignal, feedbackNode, delayedSignal, feedbackSignal, pitchShiftedSignal;
 
 	input = In.ar(~inputAudioBus, 1);
-	feedbackNode = FbNode(numChannels: 1, maxdelaytime: delayTime, interpolation: 2);
-	delayedSignal = feedbackNode.delay;
+	feedbackNode = FbNode(numChannels: 1, maxdelaytime: ~maxDelayTime, interpolation: 2);
+	delayedSignal = feedbackNode.delay(delayTime);
 
 	if (false, {
 		~feedbackBuses.do({ arg item, i;
@@ -62,21 +72,19 @@ SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 0.0, stere
 
 (
 SynthDef.new(\mixer, { arg master = 1, wet = 0;
-	var input, stereoOutput, voiceStereoBuses;
-	input = (1 - wet) * Pan2.ar(In.ar(~inputAudioBus, 1), 0);
-	stereoOutput = Array.fill(2, { arg i;
-		voiceStereoBuses = ~voiceOutputBuses.collect({ arg item, j; item.index + i;});
-		voiceStereoSignals = voiceStereoBuses.collect({ arg item, j; wet * In.ar(item, 1)});
-		Mix.new([input[i], voiceStereoSignals]);
-	});
-	Out.ar([0, 1], master * stereoOutput);
+	var stereoInput, stereoOutput, voiceStereoSignals;
+	stereoInput = Pan2.ar((1 - wet) * In.ar(~inputAudioBus, 1), 0.0);
+	voiceStereoSignals = ~voiceOutputBuses.collect({ arg item, i; wet * In.ar(item, 2) });
+	stereoOutput = Mix.new(stereoInput ++ voiceStereoSignals);
+	Out.ar(0, master * stereoOutput);
 }).add;
 );
 
 (
 var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle;
 
-x = Synth(\testInputSignalGenerator);
+//x = Synth(\testInputSignalGenerator);
+x = Synth(\soundIn);
 voiceChannelsGroup = ParGroup.after(x);
 voiceChannels = Array.fill(3, { arg i;
 	Synth.head(voiceChannelsGroup, \voiceChannel,
@@ -238,7 +246,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Delay Time",
-		controlSpec: ControlSpec.new(minval: 0.014, maxval: 2.0, warp: \lin, default: 0.0),
+		controlSpec: ControlSpec.new(minval: 0.014, maxval: ~maxDelayTime, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\delayTime, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
@@ -282,7 +290,7 @@ voiceChannels.do({ arg voiceChannel, index;
 });
 
 window.front;
-window.onClose_({x.free; voiceChannelsGroup.free; outputMixer.free;});
+window.onClose_({x.free; voiceChannelsGroup.freeAll; outputMixer.free;});
 
 )
 
