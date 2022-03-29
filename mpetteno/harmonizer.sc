@@ -24,7 +24,7 @@ SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 0.0, stere
 
 	if (false, {
 		~feedbackBuses.do({ arg item, i;
-			if (item.index !== feedbackBus, {
+			if (item !== feedbackBus, {
 				var crossFeedbackSignal = In.ar(item, 1);
 				delayedSignal = delayedSignal + feedbackAmount*crossFeedbackSignal;
 			});
@@ -62,12 +62,12 @@ SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 0.0, stere
 
 (
 SynthDef.new(\mixer, { arg master = 1, wet = 0;
-	var input, stereoOutput, firstBusIndex;
+	var input, stereoOutput, voiceStereoBuses;
 	input = (1 - wet) * Pan2.ar(In.ar(~inputAudioBus, 1), 0);
 	stereoOutput = Array.fill(2, { arg i;
-		Mix.new([input[i], wet * In.ar(~voiceOutputBuses.collect({ arg item, j;
-			item.index + i;
-		}), 1)]);
+		voiceStereoBuses = ~voiceOutputBuses.collect({ arg item, j; item.index + i;});
+		voiceStereoSignals = voiceStereoBuses.collect({ arg item, j; wet * In.ar(item, 1)});
+		Mix.new([input[i], voiceStereoSignals]);
 	});
 	Out.ar([0, 1], master * stereoOutput);
 }).add;
@@ -80,7 +80,7 @@ x = Synth(\testInputSignalGenerator);
 voiceChannelsGroup = ParGroup.after(x);
 voiceChannels = Array.fill(3, { arg i;
 	Synth.head(voiceChannelsGroup, \voiceChannel,
-		[\voiceOutputBus, ~voiceOutputBuses[i].index, \feedbackBus, ~feedbackBuses[i].index]);
+		[\voiceOutputBus, ~voiceOutputBuses[i], \feedbackBus, ~feedbackBuses[i]]);
 });
 outputMixer = Synth.after(voiceChannelsGroup, \mixer);
 
