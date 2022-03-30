@@ -1,70 +1,91 @@
-
 (
 ~inputAudioBus = Bus.audio(s, 1);
-~voiceOutputBuses = Array.fill(3, {arg index; Bus.audio(s, 2)});
-~feedbackBuses = Array.fill(3, {arg index; Bus.audio(s, 1)});
-
+~voiceOutputBuses = Array.fill(3, {arg i; Bus.audio(s, 2)});
+~feedbackBuses = Array.fill(3, {arg i; Bus.audio(s, 1)});
+~maxDelayTime = 2.0;
 );
 
 (
 SynthDef.new(\testInputSignalGenerator, {
 	Out.ar(
-		bus: [0, ~inputAudioBus],
-		channelsArray: SinOsc.ar(200) * Line.kr(1,0,2);
+		bus: ~inputAudioBus,
+		channelsArray: SinOsc.ar(200) * Line.kr(1,0,120)
 	);
 }).add;
 );
 
-
 (
-SynthDef.new(\testSoundIn, {
+SynthDef.new(\soundIn, {
 	Out.ar(
-		bus: [[0,1], ~inputAudioBus],
-		channelsArray: SoundIn.ar([0,1]);
+		bus: ~inputAudioBus,
+		channelsArray: SoundIn.ar(0);
 	);
 }).add;
 );
 
-
 (
-SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, stereoPan = 0.0, pitchRatio = 0, delayTime = 0.014, feedbackAmount = 0;
+SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 0.0, stereoPan = 0.0, pitchRatio = 0, delayTime = 0.014, feedbackAmount = 0.0, isCrossFeedback = 0, mode_to_understand=0;
 
-	var input, voiceOutputSignal, feedbackNode, delayedSignal, feedbackSignal, pitchShiftedSignal;
+	var input, voiceOutputSignal, feedbackNode, delayedSignal, feedbackSignal, pitchShiftedSignal, crossdelayedSignal;
 
 	input = In.ar(~inputAudioBus, 1);
-	feedbackNode = FbNode(1, delayTime);
-	delayedSignal = feedbackNode.delay;
+	feedbackNode = FbNode(numChannels: 1, maxdelaytime: ~maxDelayTime, interpolation: 2);
+	delayedSignal = feedbackNode.delay(delayTime);
 
-	if (false, {
-		~feedbackBuses.do({ arg item, index;
-			if (item.index !== feedbackBus, {
-				var crossFeedbackSignal = In.ar(item, 1);
-				delayedSignal = delayedSignal + feedbackAmount*crossFeedbackSignal;
-			});
+
+	~feedbackBuses.do({ arg item, i;
+		if (item !== feedbackBus, {
+			var crossFeedbackSignal = In.ar(item, 1);
+			crossdelayedSignal = delayedSignal + feedbackAmount*crossFeedbackSignal;
 		});
 	});
-
-	if (true,
-		{ pitchShiftedSignal = PitchShift.ar(
-			in: input + delayedSignal,
+	
+	// Choose Modes
+	delayedSignal = Select.ar(
+		isCrossFeedback,
+		[
+		feedbackNode.delay(delayTime),
+		crossdelayedSignal
+		],
+		
+	);
+	
+	pitchShiftedSignal = Select.ar(
+		isCrossFeedback,
+		[
+		PitchShift.ar(
+			in: input + delayedSignal, 
 			windowSize: 0.075,
 			pitchRatio: (1.059463094).pow(pitchRatio),
 			pitchDispersion: 0.0001,
 			timeDispersion: 0.075,
 			mul: gain
-		);
-		voiceOutputSignal = pitchShiftedSignal;
-		feedbackSignal = input + feedbackAmount*voiceOutputSignal;},
-		{ pitchShiftedSignal = PitchShift.ar(
-			in: input,
+		),
+		PitchShift.ar(
+			in: input, 
 			windowSize: 0.075,
 			pitchRatio: (1.059463094).pow(pitchRatio),
 			pitchDispersion: 0.0001,
 			timeDispersion: 0.075,
 			mul: gain
-		);
-		voiceOutputSignal = delayedSignal + pitchShiftedSignal;
-		feedbackSignal = feedbackAmount*voiceOutputSignal;}
+		)
+		],
+	);
+	
+	voiceOutputSignal = Select.ar(
+		isCrossFeedback,
+		[
+		pitchShiftedSignal,
+		delayedSignal + pitchShiftedSignal
+		]
+	);
+	
+	feedbackSignal = Select.ar(
+		mode_to_understand,
+		[
+		input + feedbackAmount*voiceOutputSignal,
+		feedbackAmount*voiceOutputSignal
+		]
 	);
 
 	feedbackNode.write(feedbackSignal);
@@ -75,27 +96,37 @@ SynthDef.new(\voiceChannel, { arg voiceOutputBus, feedbackBus, gain = 1, stereoP
 
 (
 SynthDef.new(\mixer, { arg master = 1, wet = 0;
-	var input, stereoOutput, firstBusIndex;
-	input = Pan2.ar(In.ar(~inputAudioBus, 1), 0);
-	stereoOutput = Array.fill(2, { arg i;
-		Mix.new([input[i], In.ar(~voiceOutputBuses.collect({ arg item, j;
-			item.index + i;
-		}), 1)]);
-	});
-	Out.ar([0, 1], master * stereoOutput);
+	var stereoInput, stereoOutput, voiceStereoSignals;
+	stereoInput = Pan2.ar((1 - wet) * In.ar(~inputAudioBus, 1), 0.0);
+	voiceStereoSignals = ~voiceOutputBuses.collect({ arg item, i; wet * In.ar(item, 2) });
+	stereoOutput = Mix.new(stereoInput ++ voiceStereoSignals);
+	Out.ar(0, master * stereoOutput);
 }).add;
 );
 
 (
-// FLOW CONTROL
-var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle;
+var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, button, buttonWidth, buttonHeight;
+// GUI
+Window.closeAll;
+windowWidth = 1225;
+windowHeight = 850;
+titleWidth = 200;
+titleHeight = 70;
+knobWidth = 125;
+knobHeight = knobWidth;
+sliderWidth = 300;
+sliderHeight = 50;
+buttonWidth = 100;
+buttonHeight = 40;
+margin = 5@5;
 
-x = Synth(\testSoundIn);
+
 //x = Synth(\testInputSignalGenerator);
+x = Synth(\soundIn);
 voiceChannelsGroup = ParGroup.after(x);
-voiceChannels = Array.fill(3, { arg index;
+voiceChannels = Array.fill(3, { arg i;
 	Synth.head(voiceChannelsGroup, \voiceChannel,
-		[\voiceOutputBus, ~voiceOutputBuses[index].index, \feedbackBus, ~feedbackBuses[index].index]);
+		[\voiceOutputBus, ~voiceOutputBuses[i], \feedbackBus, ~feedbackBuses[i]]);
 });
 outputMixer = Synth.after(voiceChannelsGroup, \mixer);
 
@@ -118,6 +149,7 @@ window = Window(
 	border: true,
 	scroll: false
 );
+window.view.background_(Color.new255(0, 180, 232, 255));
 
 /* ----- Master Section ----- */
 currentXPos = (1200 - titleWidth)/2;
@@ -136,7 +168,7 @@ EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Gain",
-	controlSpec: ControlSpec.new(0, 1, \lin),
+	controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 1.0),
 	action: {arg thisKnob; outputMixer.set(\master, thisKnob.value)},
 	initVal: nil,
 	initAction: false,
@@ -154,7 +186,7 @@ EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Dry/Wet",
-	controlSpec: ControlSpec.new(0, 1, \lin),
+	controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, default: 0.5),
 	action: {arg thisKnob; outputMixer.set(\wet, thisKnob.value)},
 	initVal: nil,
 	initAction: false,
@@ -192,7 +224,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Gain",
-		controlSpec: ControlSpec.new(0, 1, \lin),
+		controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\gain, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
@@ -210,7 +242,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Pan",
-		controlSpec: ControlSpec(-1, 1, \lin, default: 0),
+		controlSpec: ControlSpec.new(minval: -1.0, maxval: 1.0, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\stereoPan, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
@@ -231,7 +263,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, sliderWidth, sliderHeight),
 		label: "Pitch Ratio",
-		controlSpec: ControlSpec(-24, 24, \lin, 1, 0, \st),
+		controlSpec: ControlSpec(minval: -24, maxval: 24, warp: \lin, step: 1, default: 0, units: \st),
 		action: {arg thisSlider; voiceChannel.set(\pitchRatio, thisSlider.value)},
 		initVal: nil,
 		initAction: false,
@@ -253,7 +285,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Delay Time",
-		controlSpec: ControlSpec.new(0, 1, \lin),
+		controlSpec: ControlSpec.new(minval: 0.014, maxval: ~maxDelayTime, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\delayTime, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
@@ -276,7 +308,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Feedback",
-		controlSpec: ControlSpec.new(0, 1, \lin),
+		controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 0.0),
 		action: {arg thisKnob; voiceChannel.set(\feedbackAmount, thisKnob.value)},
 		initVal: nil,
 		initAction: false,
@@ -293,12 +325,19 @@ voiceChannels.do({ arg voiceChannel, index;
 	crossfbModeCheckbox.action_({
 	voiceChannel.set(\isCrossFeedbackMode, crossfbModeCheckbox.value);
 	});*/
+	currentYPos = currentYPos + knobHeight + 30;
+	button = Button.new(window, Rect(currentXPos - (buttonWidth/2) - 2.5, currentYPos, buttonWidth, buttonHeight)) ;
+	button.states = [ [ "Cross-Correlation", Color.black ], ["Normal", Color.black]] ;
+	button.action = ({ arg me;
+		me.value.postln;
+		voiceChannel.set(\isCrossFeedback, me.value);
+	});
+
+	
 
 });
 
 window.front;
-window.onClose_({x.free; voiceChannelsGroup.free; outputMixer.free;});
+window.onClose_({x.free; voiceChannelsGroup.freeAll; outputMixer.free;});
 
 )
-
-{SoundIn.ar([0,1]);}.play;
