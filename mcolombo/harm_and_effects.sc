@@ -7,9 +7,7 @@
 ~modeSelectionBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)}); // This bus controls which mode is active
 ~pitchfbModeControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)}); 
 ~delayedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
-// ~feedbackBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
 ~pitchShiftedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
-
 );
 
 (
@@ -64,18 +62,10 @@ SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 	postln(pitchRatio.value);
 	isPitchShiftFeedbackMode = In.kr(Select.kr(channelIndex, ~pitchfbModeControlBuses), 1);
 
-	/*
-	if (false, // todo select
-		{ var delayedSignal = In.ar(Select.kr(channelIndex, ~delayedVoiceBuses), 1);
-			pitchShiftInput = input + delayedSignal },
-		{ pitchShiftInput = input }
-	);
-	*/
-
 	delayedSignal = In.ar(Select.kr(channelIndex, ~delayedVoiceBuses), 1);
 	selectedMode = In.kr(Select.kr(channelIndex, ~modeSelectionBuses), 1);
 
-	pitchShiftInput = Select(selectedMode,
+	pitchShiftInput = Select.ar(selectedMode,
 		[
 		input + delayedSignal,
 		input
@@ -106,16 +96,9 @@ SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedback
 	delayedSignal = feedbackNode.delay(delayTime);
 	pitchShiftedSignal = In.ar(Select.kr(channelIndex, ~pitchShiftedVoiceBuses), 1);
 
-	/*
-	if (false, // todo: select
-		{ feedbackSignal = input + feedbackAmount*pitchShiftedSignal },
-		{ feedbackSignal = feedbackAmount*(pitchShiftedSignal + delayedSignal) }
-	);
-	*/
-
 	selectedMode = In.kr(Select.kr(channelIndex, ~modeSelectionBuses), 1);
 
-	feedbackSignal = Select( selectedMode,
+	feedbackSignal = Select.ar( selectedMode,
 		[
 		input + feedbackAmount*pitchShiftedSignal,
 		feedbackAmount*(pitchShiftedSignal + delayedSignal)
@@ -159,14 +142,14 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0;
 		*/
 		delayedSignal = In.ar(~delayedVoiceBuses[i], 1);
 		selectedMode = In.kr(Select.kr(i, ~modeSelectionBuses), 1);
-		/*voiceOutput = Select( 1,
+		voiceOutput = Select.ar( 1,
 			[
 				pitchShiftedVoice,
 				pitchShiftedVoice + delayedSignal
 			]
-		);*/
+		);
 		//todo remove
-		voiceOutput = pitchShiftedVoice + delayedSignal;
+		//voiceOutput = pitchShiftedVoice + delayedSignal;
 		
 		Pan2.ar(wet * voiceOutput, stereoPan);
 	});
