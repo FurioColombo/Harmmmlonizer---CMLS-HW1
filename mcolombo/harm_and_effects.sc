@@ -5,7 +5,7 @@
 ~pitchRatioControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 ~stereoPanControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 ~modeSelectionBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)}); // This bus controls which mode is active
-~pitchfbModeControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)}); 
+~pitchfbModeControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 ~delayedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
 ~pitchShiftedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
 );
@@ -46,8 +46,7 @@ SynthDef.new(\pitchDetection, {
 		clar: 0
 	);
 	// Calculate pitch ratios based on freq and knobs values and write them to buses
-
-
+	
 }).add
 );
 
@@ -62,12 +61,24 @@ SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 	postln(pitchRatio.value);
 	isPitchShiftFeedbackMode = In.kr(Select.kr(channelIndex, ~pitchfbModeControlBuses), 1);
 
+	/*
+	if (false, // todo select
+		{ var delayedSignal = In.ar(Select.kr(channelIndex, ~delayedVoiceBuses), 1);
+			pitchShiftInput = input + delayedSignal },
+		{ pitchShiftInput = input }
+	);
+	*/
+
 	delayedSignal = In.ar(Select.kr(channelIndex, ~delayedVoiceBuses), 1);
 	selectedMode = In.kr(Select.kr(channelIndex, ~modeSelectionBuses), 1);
 
 	pitchShiftInput = Select.ar(selectedMode,
 		[
+		// normal delay
+		input,
+		// pitch shifted delay
 		input + delayedSignal,
+		// crossfeedback
 		input
 		]
 	);
@@ -96,17 +107,29 @@ SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedback
 	delayedSignal = feedbackNode.delay(delayTime);
 	pitchShiftedSignal = In.ar(Select.kr(channelIndex, ~pitchShiftedVoiceBuses), 1);
 
+	/*
+	if (false, // todo: select
+		{ feedbackSignal = input + feedbackAmount*pitchShiftedSignal },
+		{ feedbackSignal = feedbackAmount*(pitchShiftedSignal + delayedSignal) }
+	);
+	*/
+
 	selectedMode = In.kr(Select.kr(channelIndex, ~modeSelectionBuses), 1);
 
 	feedbackSignal = Select.ar( selectedMode,
 		[
+		// normal delay
 		input + feedbackAmount*pitchShiftedSignal,
-		feedbackAmount*(pitchShiftedSignal + delayedSignal)
+		// pitch shifted delay
+		feedbackAmount*(pitchShiftedSignal + delayedSignal),
+		// crossfeedback delay
+		input + feedbackAmount*pitchShiftedSignal
 		]
 	);
 	//todo remove
 	feedbackSignal = feedbackAmount*(pitchShiftedSignal + delayedSignal);
 
+	// cross feedback
 	/*if (false, {
 		~feedbackBuses.do({ arg item, i;
 			if (item !== feedbackBus, {
@@ -144,13 +167,17 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0;
 		selectedMode = In.kr(Select.kr(i, ~modeSelectionBuses), 1);
 		voiceOutput = Select.ar( 1,
 			[
+				// normal delay
 				pitchShiftedVoice,
-				pitchShiftedVoice + delayedSignal
+				// pitchShifted delay
+				pitchShiftedVoice + delayedSignal,
+				// crossfedback delay
+				pitchShiftedVoice
 			]
 		);
 		//todo remove
 		//voiceOutput = pitchShiftedVoice + delayedSignal;
-		
+
 		Pan2.ar(wet * voiceOutput, stereoPan);
 	});
 
@@ -160,7 +187,7 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0;
 );
 
 (
-var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, button, buttonWidth, buttonHeight;
+var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, button, buttonWidth, buttonHeight, knob;
 
 //x = Synth(\testInputSignalGenerator);
 x = Synth(\soundIn);
@@ -188,6 +215,7 @@ buttonWidth = 100;
 buttonHeight = 40;
 margin = 5@5;
 
+
 window = Window(
 	name: "Harmonizer",
 	bounds: Rect(100, 100, windowWidth, windowHeight),
@@ -195,6 +223,7 @@ window = Window(
 	border: true,
 	scroll: false
 );
+window.view.background = Color.new255(140, 175, 189);
 
 /* ----- Master Section ----- */
 currentXPos = (1200 - titleWidth)/2;
@@ -209,7 +238,7 @@ masterTitle.align = \center;
 currentYPos = currentYPos + titleHeight;
 /* ----- Master Gain Knob ----- */
 currentXPos = 1200/2 - knobWidth;
-EZKnob(
+knob = EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Gain",
@@ -225,6 +254,8 @@ EZKnob(
 	// gap: an instance of Point,
 	margin: margin
 );
+
+// knob.setColors(Color.red,Color.blue, Color.cyan(0.7),Color.green, Color.white, Color.yellow, nil, nil, Color.grey(0.7));
 /* ----- Dry/Wet Knob ----- */
 currentXPos = currentXPos + knobWidth;
 EZKnob(
@@ -346,10 +377,8 @@ voiceChannels.do({ arg voiceChannel, index;
 		margin: margin
 	);
 	/* ----- Pitch Feedback Mode Checkbox ----- */
-	/*pitchfbModeCheckbox = CheckBox(parent: window, bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight));
-	pitchfbModeCheckbox.action_({
-		~pitchfbModeControlBuses[index].set(\isPitchFeedbackMode, pitchfbModeCheckbox.value);
-	});*/
+
+
 	/* ----- Feedback Amount Knob ----- */
 	currentXPos = currentXPos + knobWidth;
 	EZKnob(
@@ -371,7 +400,7 @@ voiceChannels.do({ arg voiceChannel, index;
 	/* ----- Cross Feedback Mode Button ----- */
 	currentYPos = currentYPos + knobHeight + 30;
 	button = Button.new(window, Rect(currentXPos - (buttonWidth/2) - 2.5, currentYPos, buttonWidth, buttonHeight)) ;
-	button.states = [ ["PitchFeedback", Color.black ], ["Normal", Color.black]] ;
+	button.states = [ ["PitchFeedback", Color.black ], ["CrossFeedback", Color.black], ["Normal", Color.black]] ;
 	button.action = ({ arg me;
 		me.value.postln;
 		~modeSelectionBuses[index].set(me.value);
