@@ -46,7 +46,7 @@ SynthDef.new(\pitchDetection, {
 		clar: 0
 	);
 	// Calculate pitch ratios based on freq and knobs values and write them to buses
-	
+
 }).add
 );
 
@@ -57,18 +57,6 @@ SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 
 	input = In.ar(~inputAudioBus, 1);
 	pitchRatio = In.kr(Select.kr(channelIndex, ~pitchRatioControlBuses), 1);
-	postln('pitch ratio: ');
-	postln(pitchRatio.value);
-	isPitchShiftFeedbackMode = In.kr(Select.kr(channelIndex, ~pitchfbModeControlBuses), 1);
-
-	/*
-	if (false, // todo select
-		{ var delayedSignal = In.ar(Select.kr(channelIndex, ~delayedVoiceBuses), 1);
-			pitchShiftInput = input + delayedSignal },
-		{ pitchShiftInput = input }
-	);
-	*/
-
 	delayedSignal = In.ar(Select.kr(channelIndex, ~delayedVoiceBuses), 1);
 	selectedMode = In.kr(Select.kr(channelIndex, ~modeSelectionBuses), 1);
 
@@ -82,7 +70,6 @@ SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 		input
 		]
 	);
-	//pitchShiftInput = input;
 
 	pitchShiftedSignal = PitchShift.ar(
 			in: pitchShiftInput,
@@ -107,27 +94,18 @@ SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedback
 	delayedSignal = feedbackNode.delay(delayTime);
 	pitchShiftedSignal = In.ar(Select.kr(channelIndex, ~pitchShiftedVoiceBuses), 1);
 
-	/*
-	if (false, // todo: select
-		{ feedbackSignal = input + feedbackAmount*pitchShiftedSignal },
-		{ feedbackSignal = feedbackAmount*(pitchShiftedSignal + delayedSignal) }
-	);
-	*/
-
 	selectedMode = In.kr(Select.kr(channelIndex, ~modeSelectionBuses), 1);
 
 	feedbackSignal = Select.ar( selectedMode,
 		[
 		// normal delay
-		input + feedbackAmount*pitchShiftedSignal,
+		feedbackAmount * (pitchShiftedSignal + delayedSignal),
 		// pitch shifted delay
-		feedbackAmount*(pitchShiftedSignal + delayedSignal),
+		input + (feedbackAmount * pitchShiftedSignal),
 		// crossfeedback delay
-		input + feedbackAmount*pitchShiftedSignal
+		input + feedbackAmount * pitchShiftedSignal
 		]
 	);
-	//todo remove
-	feedbackSignal = feedbackAmount*(pitchShiftedSignal + delayedSignal);
 
 	// cross feedback
 	/*if (false, {
@@ -151,33 +129,22 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0;
 
 	stereoInput = Pan2.ar((1 - wet) * In.ar(~inputAudioBus, 1), 0.0);
 	voiceStereoSignals = ~pitchShiftedVoiceBuses.collect({
-		arg pitchShiftedVoiceBus, i, delayedSignal;
-		var pitchShiftedVoice, stereoPan, voiceOutput;
+		arg pitchShiftedVoiceBus, i;
+		var pitchShiftedVoice, delayedSignal, stereoPan, voiceOutput;
 		stereoPan = In.kr(~stereoPanControlBuses[i], 1);
 		pitchShiftedVoice = In.ar(pitchShiftedVoiceBus, 1);
-
-		/*
-		if (false,
-			{ voiceOutput = pitchShiftedVoice },
-			{ var delayedSignal = In.ar(~delayedVoiceBuses[i], 1);
-				voiceOutput = pitchShiftedVoice + delayedSignal }
-		);
-		*/
 		delayedSignal = In.ar(~delayedVoiceBuses[i], 1);
 		selectedMode = In.kr(Select.kr(i, ~modeSelectionBuses), 1);
-		voiceOutput = Select.ar( 1,
+		voiceOutput = Select.ar( selectedMode,
 			[
 				// normal delay
-				pitchShiftedVoice,
-				// pitchShifted delay
 				pitchShiftedVoice + delayedSignal,
+				// pitchShifted delay
+				pitchShiftedVoice,
 				// crossfedback delay
 				pitchShiftedVoice
 			]
 		);
-		//todo remove
-		//voiceOutput = pitchShiftedVoice + delayedSignal;
-
 		Pan2.ar(wet * voiceOutput, stereoPan);
 	});
 
@@ -412,6 +379,3 @@ window.front;
 window.onClose_({x.free; voiceChannelsGroup.freeAll; outputMixer.free;});
 
 )
-
-
-{SoundIn.ar(0,1)}.play;
