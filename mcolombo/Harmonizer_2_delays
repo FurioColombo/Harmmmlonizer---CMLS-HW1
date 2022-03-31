@@ -53,7 +53,7 @@ SynthDef.new(\pitchDetection, {
 );
 
 (
-SynthDef.new(\pitchShiftDelayChannel, { arg channelIndex, gain = 1, feedbackAmount = 0.9, delayTime = 0.5;
+SynthDef.new(\pitchShiftDelayLine, { arg channelIndex, gain = 1, feedbackAmount = 0.9, delayTime = 0.5;
 	var input, voiceOutputSignal, feedbackNode, delayedSignal, feedbackSignal, pitchShiftedSignal, pitchRatio;
 	input = In.ar(~inputAudioBus, 1);
 	pitchRatio = In.kr(Select.kr(channelIndex, ~pitchRatioControlBuses), 1);
@@ -190,17 +190,17 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0;
 );
 
 (
-var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, button, buttonWidth, buttonHeight, knob, pitchShiftDelayLine;
+var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, button, buttonWidth, buttonHeight, knob;
 
 //x = Synth(\testInputSignalGenerator);
 x = Synth(\soundIn);
 voiceChannelsGroup = ParGroup.after(x);
 voiceChannels = Array.fill(~voiceNumber, {
 	arg i;
-	var pitchShifter, feedbackDelayLine;
+	var pitchShifter, feedbackDelayLine, pitchShiftDelayLine;
 	pitchShifter = Synth.head(voiceChannelsGroup, \pitchShifter, [\channelIndex, i]);
 	feedbackDelayLine = Synth.tail(voiceChannelsGroup, \feedbackDelayLine, [\channelIndex, i]);
-	pitchShiftDelayLine = Synth.tail(voiceChannelsGroup, \pitchShiftDelayChannel, [\channelIndex, i]);
+	pitchShiftDelayLine = Synth.tail(voiceChannelsGroup, \pitchShiftDelayLine, [\channelIndex, i]);
 	[pitchShifter, feedbackDelayLine, pitchShiftDelayLine];
 });
 outputMixer = Synth.after(voiceChannelsGroup, \mixer);
@@ -249,7 +249,7 @@ knob = EZKnob(
 	controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 1.0),
 	action: {arg thisKnob;
 		outputMixer.set(\master, thisKnob.value);
-		pitchShiftDelayLine.set(\master, thisKnob.value);
+		//pitchShiftDelayLine.set(\gain, thisKnob.value);
 	},
 	initVal: nil,
 	initAction: false,
@@ -285,11 +285,12 @@ EZKnob(
 /* ----- Voice Channels Section ----- */
 voiceChannels.do({ arg voiceChannel, index;
 
-	var title, pitchShifter, feedbackDelayLine, pitchfbModeCheckbox, crossfbModeCheckbox;
+	var title, pitchShifter, feedbackDelayLine, pitchfbModeCheckbox, crossfbModeCheckbox, pitchShiftDelayLine;
 	xOffset = 55 + (400*index);
 
 	pitchShifter = voiceChannel[0];
 	feedbackDelayLine = voiceChannel[1];
+	pitchShiftDelayLine = voiceChannel[2];
 
 	/* ----- Title ----- */
 	currentXPos = xOffset + ((sliderWidth - titleWidth)/2);
@@ -386,8 +387,6 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
-	/* ----- Pitch Feedback Mode Checkbox ----- */
-
 
 	/* ----- Feedback Amount Knob ----- */
 	currentXPos = currentXPos + knobWidth;
@@ -398,7 +397,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 0.0),
 		action: {arg thisKnob;
 			feedbackDelayLine.set(\feedbackAmount, thisKnob.value);
-			pitchShiftDelayLine.set(\master, thisKnob.value);
+			pitchShiftDelayLine.set(\feedbackAmount, thisKnob.value);
 		},
 		initVal: nil,
 		initAction: false,
@@ -410,7 +409,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
-	/* ----- Cross Feedback Mode Button ----- */
+	/* ----- PitchShiftedDelay Mode Button ----- */
 	currentYPos = currentYPos + knobHeight + 30;
 	button = Button.new(window, Rect(currentXPos - (buttonWidth/2) - 2.5, currentYPos, buttonWidth, buttonHeight)) ;
 	button.states = [ ["PitchFeedback", Color.black ], ["CrossFeedback", Color.black], ["Normal", Color.black]] ;
