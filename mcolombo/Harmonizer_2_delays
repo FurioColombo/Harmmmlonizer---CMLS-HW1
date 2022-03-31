@@ -249,7 +249,6 @@ knob = EZKnob(
 	controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 1.0),
 	action: {arg thisKnob;
 		outputMixer.set(\master, thisKnob.value);
-		//pitchShiftDelayLine.set(\gain, thisKnob.value);
 	},
 	initVal: nil,
 	initAction: false,
@@ -312,7 +311,10 @@ voiceChannels.do({ arg voiceChannel, index;
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Gain",
 		controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin, default: 0.0),
-		action: {arg thisKnob; pitchShifter.set(\gain, thisKnob.value)},
+		action: {arg thisKnob; 
+			pitchShifter.set(\gain, thisKnob.value);
+			pitchShiftDelayLine.set(\gain, thisKnob.value);
+		},
 		initVal: nil,
 		initAction: false,
 		labelWidth: 60,
