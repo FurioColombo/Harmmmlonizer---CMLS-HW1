@@ -16,6 +16,9 @@
 ~modeSelectionBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 );
 
+/* ----- Sound Input -----
+Reads the audio from the hardware input
+an writes it to inputAudioBus */
 (
 SynthDef.new(\soundIn, {
 	Out.ar(
@@ -25,6 +28,10 @@ SynthDef.new(\soundIn, {
 }).add;
 );
 
+/* ----- Pitch Detection - (Future improvement) -----
+Detects the pitch of the input signal and automatically sets the
+values for the voices's pitch ratios. These will be computed
+accordingly to the specified tonality and scale mode. */
 (
 SynthDef.new(\pitchDetection, {
 	var input, freq, hasFreq;
@@ -46,6 +53,8 @@ SynthDef.new(\pitchDetection, {
 }).add
 );
 
+/* ----- Pitch Shifter -----
+Pitch shift the input signal based on the selected mode. */
 (
 SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 
@@ -73,6 +82,9 @@ SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 }).add;
 );
 
+/* ----- Feedback Delay Line -----
+A feedback delay line that uses the quarks FbNode: the input feedback signal
+to the node changes accordingly to the selected mode. */
 (
 SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedbackAmount = 0.0;
 
@@ -108,6 +120,8 @@ SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedback
 }).add;
 );
 
+/* ----- Mixer -----
+Mixes the mono input and the pitch shifted voices to a stereo ouput. */
 (
 SynthDef.new(\mixer, { arg master = 1, wet = 0.5;
 	var stereoInput, stereoOutput, voiceStereoSignals, selectedMode;
@@ -133,9 +147,13 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0.5;
 }).add;
 );
 
+/* ----- Synths and GUI ----- */
 (
 var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, pitchShifterTitle, button, buttonWidth, buttonHeight;
+
+/* ----- Synths ----- */
 x = Synth(\soundIn);
+voiceChannelsGroup = ParGroup.after(x);x = Synth(\soundIn);
 voiceChannelsGroup = ParGroup.after(x);
 voiceChannels = Array.fill(~voiceNumber, {
 	arg i;
@@ -145,8 +163,16 @@ voiceChannels = Array.fill(~voiceNumber, {
 	[pitchShifter, feedbackDelayLine];
 });
 outputMixer = Synth.after(voiceChannelsGroup, \mixer);
+voiceChannels = Array.fill(~voiceNumber, {
+	arg i;
+	var pitchShifter, feedbackDelayLine;
+	pitchShifter = Synth.head(voiceChannelsGroup, \pitchShifter, [\channelIndex, i]);
+	feedbackDelayLine = Synth.after(pitchShifter, \feedbackDelayLine, [\channelIndex, i]);
+	[pitchShifter, feedbackDelayLine];
+});
+outputMixer = Synth.after(voiceChannelsGroup, \mixer);
 
-// GUI
+/* ----- GUI ----- */
 Window.closeAll;
 windowWidth = 1225;
 windowHeight = 800;
@@ -168,6 +194,7 @@ window = Window(
 	scroll: false
 );
 window.view.background = Color.new255(140, 175, 189);
+
 /* ----- Master Section ----- */
 currentYPos = 50;
 /* ----- Input Meter ----- */
@@ -404,7 +431,6 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
-
 	/* ----- Feedback Amount Knob ----- */
 	currentXPos = currentXPos + knobWidth;
 	EZKnob(
