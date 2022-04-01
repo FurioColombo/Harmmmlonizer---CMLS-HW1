@@ -8,6 +8,9 @@
 ~delayedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
 ~pitchShiftedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
 /* ----- Control buses ----- */
+~pitchShifWindowSizeControlBus = Bus.control(s, 1);
+~pitchShifTimeDispersionControlBus = Bus.control(s, 1);
+~pitchShifPitchDispersionControlBus = Bus.control(s, 1);
 ~pitchRatioControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 ~stereoPanControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 ~modeSelectionBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
@@ -46,22 +49,24 @@ SynthDef.new(\pitchDetection, {
 (
 SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 
-	var input, delayedSignal, pitchShiftInput, isPitchShiftFeedbackMode, pitchRatio, pitchShiftedSignal, isCrossFeedback, selectedMode;
+	var input, delayedSignal, pitchShiftInput, isPitchShiftFeedbackMode, windowSize, pitchRatio, pitchDispersion, timeDispersion, pitchShiftedSignal, isCrossFeedback, selectedMode;
 
 	input = In.ar(~inputAudioBus, 1);
 	delayedSignal = InFeedback.ar(Select.kr(channelIndex, ~delayedVoiceBuses), 1);
 	selectedMode = In.kr(Select.kr(channelIndex, ~modeSelectionBuses), 1);
 
 	pitchShiftInput = Select.ar(selectedMode, [input, Mix.new([input, delayedSignal]), input]);
-
+	windowSize = In.kr(~pitchShifWindowSizeControlBus, 1);
+	pitchDispersion = In.kr(~pitchShifPitchDispersionControlBus, 1);
+	timeDispersion = In.kr(~pitchShifTimeDispersionControlBus, 1);
 	pitchRatio = In.kr(Select.kr(channelIndex, ~pitchRatioControlBuses), 1);
 	pitchShiftedSignal = PitchShift.ar(
-			in: pitchShiftInput,
-			windowSize: 0.075,
-			pitchRatio: (1.059463094).pow(pitchRatio),
-			pitchDispersion: 0.0001,
-			timeDispersion: 0.075,
-			mul: gain
+		in: pitchShiftInput,
+		windowSize: windowSize,
+		pitchRatio: (1.059463094).pow(pitchRatio),
+		pitchDispersion: pitchDispersion,
+		timeDispersion: windowSize*timeDispersion,
+		mul: gain
 	);
 
 	Out.ar(Select.kr(channelIndex, ~pitchShiftedVoiceBuses), pitchShiftedSignal);
@@ -129,8 +134,7 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0.5;
 );
 
 (
-var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, button, buttonWidth, buttonHeight, knob;
-
+var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, pitchShifterTitle, button, buttonWidth, buttonHeight;
 x = Synth(\soundIn);
 voiceChannelsGroup = ParGroup.after(x);
 voiceChannels = Array.fill(~voiceNumber, {
@@ -156,7 +160,6 @@ buttonWidth = 120;
 buttonHeight = 40;
 margin = 5@5;
 
-
 window = Window(
 	name: "Harmonizer",
 	bounds: Rect(100, 100, windowWidth, windowHeight),
@@ -165,10 +168,19 @@ window = Window(
 	scroll: false
 );
 window.view.background = Color.new255(140, 175, 189);
-
 /* ----- Master Section ----- */
-currentXPos = (1200 - titleWidth)/2;
 currentYPos = 50;
+/* ----- Input Meter ----- */
+currentXPos = 175;
+ServerMeterView.new(
+	aserver: s,
+	parent: window,
+	leftUp: currentXPos@currentYPos,
+	numIns: 1,
+	numOuts: 0
+);
+/* ----- Title ----- */
+currentXPos = (730 - titleWidth)/2;
 masterTitle = StaticText(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
@@ -178,8 +190,8 @@ masterTitle.font = Font("Monaco", 30);
 masterTitle.align = \center;
 currentYPos = currentYPos + titleHeight;
 /* ----- Master Gain Knob ----- */
-currentXPos = 1200/2 - knobWidth;
-knob = EZKnob(
+currentXPos = 730/2 - knobWidth;
+EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Gain",
@@ -195,8 +207,6 @@ knob = EZKnob(
 	// gap: an instance of Point,
 	margin: margin
 );
-
-// knob.setColors(Color.red,Color.blue, Color.cyan(0.7),Color.green, Color.white, Color.yellow, nil, nil, Color.grey(0.7));
 /* ----- Dry/Wet Knob ----- */
 currentXPos = currentXPos + knobWidth;
 EZKnob(
@@ -215,6 +225,83 @@ EZKnob(
 	// gap: an instance of Point,
 	margin: margin
 );
+/* ----- Output Meter ----- */
+currentXPos = currentXPos + knobWidth;
+currentYPos = 50;
+ServerMeterView.new(
+	aserver: s,
+	parent: window,
+	leftUp: currentXPos@currentYPos,
+	numIns: 0,
+	numOuts: 2
+);
+
+/* ----- Pitch Shifter Section ----- */
+currentXPos = (1690 - titleWidth)/2;
+currentYPos = 50;
+pitchShifterTitle = StaticText(
+	parent: window,
+	bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
+);
+pitchShifterTitle.string = "Pitch Shifter";
+pitchShifterTitle.font = Font("Monaco", 30);
+pitchShifterTitle.align = \center;
+currentYPos = currentYPos + titleHeight;
+/* ----- Window Size Knob ----- */
+currentXPos = 1550/2 - knobWidth;
+EZKnob(
+	parent: window,
+	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+	label: "Grain Size",
+	controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, step: 0.005),
+	action: {arg thisKnob; ~pitchShifWindowSizeControlBus.set(thisKnob.value)},
+	initVal: 0.075,
+	initAction: true,
+	labelWidth: 60,
+	// knobSize: an instance of Point,
+	unitWidth: 0,
+	labelHeight: 20,
+	layout: \vert2,
+	// gap: an instance of Point,
+	margin: margin
+);
+/* ----- Pitch Dispersion Knob ----- */
+currentXPos = currentXPos + knobWidth;
+EZKnob(
+	parent: window,
+	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+	label: "Pitch Dispersion",
+	controlSpec: ControlSpec.new(minval: 0.0, maxval: 0.5, warp: \lin, step: 0.0001),
+	action: {arg thisKnob; ~pitchShifPitchDispersionControlBus.set(thisKnob.value)},
+	initVal: 0.0001,
+	initAction: true,
+	labelWidth: 60,
+	// knobSize: an instance of Point,
+	unitWidth: 0,
+	labelHeight: 20,
+	layout: \vert2,
+	// gap: an instance of Point,
+	margin: margin
+);
+/* ----- Time Dispersion Knob ----- */
+currentXPos = currentXPos + knobWidth;
+EZKnob(
+	parent: window,
+	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+	label: "Time Dispersion",
+	controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, step: 0.01),
+	action: {arg thisKnob; ~pitchShifTimeDispersionControlBus.set(thisKnob.value)},
+	initVal: 1.0,
+	initAction: true,
+	labelWidth: 60,
+	// knobSize: an instance of Point,
+	unitWidth: 0,
+	labelHeight: 20,
+	layout: \vert2,
+	// gap: an instance of Point,
+	margin: margin
+);
+
 
 /* ----- Voice Channels Section ----- */
 voiceChannels.do({ arg voiceChannel, index;
@@ -336,13 +423,14 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
+
 	/* ----- Fifth Line ----- */
 	/* ----- Delay Mode Selection Button ----- */
 	currentYPos = currentYPos + knobHeight + 30;
 	button = Button.new(
 		parent: window,
 		bounds: Rect(currentXPos - (buttonWidth/2) - 2.5, currentYPos, buttonWidth, buttonHeight));
-	button.states = [ ["Pitch Feedback", Color.black ], ["Cross Feedback", Color.black], ["Normal", Color.black]] ;
+	button.states = [["Normal", Color.black], ["Pitch Feedback", Color.black], ["Cross Feedback", Color.black]];
 	button.action = ({ arg me;
 		~modeSelectionBuses[index].set(me.value);
 	});
