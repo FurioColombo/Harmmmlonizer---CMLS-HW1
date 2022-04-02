@@ -3,6 +3,7 @@
 /* ----- Global settings ----- */
 ~voiceNumber = 3;
 ~maxDelayTime = 2.0;
+~fontName = "Arial Black";
 /* ----- Audio buses ----- */
 ~inputAudioBus = Bus.audio(s, 1);
 ~delayedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
@@ -149,7 +150,7 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0.5;
 
 /* ----- Synths and GUI ----- */
 (
-var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, pitchShifterTitle, button, buttonWidth, buttonHeight;
+var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, pitchShifterTitle, button, buttonWidth, buttonHeight, knob;
 
 /* ----- Synths ----- */
 x = Synth(\soundIn);
@@ -179,7 +180,7 @@ buttonHeight = 40;
 margin = 5@5;
 
 window = Window(
-	name: "Harmonizer",
+	name: "Harmmmlonizer",
 	bounds: Rect(100, 100, windowWidth, windowHeight),
 	resizable: false,
 	border: true,
@@ -205,12 +206,12 @@ masterTitle = StaticText(
 	bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
 );
 masterTitle.string = "Master";
-masterTitle.font = Font("Monaco", 30);
+masterTitle.font = Font("~fontName", 30);
 masterTitle.align = \center;
 currentYPos = currentYPos + titleHeight;
 /* ----- Master Gain Knob ----- */
 currentXPos = 730/2 - knobWidth;
-EZKnob(
+knob = EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Gain",
@@ -226,9 +227,10 @@ EZKnob(
 	// gap: an instance of Point,
 	margin: margin
 );
+knob.font = Font(~fontName, 11);
 /* ----- Dry/Wet Knob ----- */
 currentXPos = currentXPos + knobWidth;
-EZKnob(
+knob = EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Dry/Wet",
@@ -244,6 +246,7 @@ EZKnob(
 	// gap: an instance of Point,
 	margin: margin
 );
+knob.font = Font(~fontName, 11);
 /* ----- Output Meter ----- */
 currentXPos = currentXPos + knobWidth;
 currentYPos = 50;
@@ -263,12 +266,12 @@ pitchShifterTitle = StaticText(
 	bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
 );
 pitchShifterTitle.string = "Pitch Shifter";
-pitchShifterTitle.font = Font("Monaco", 30);
+pitchShifterTitle.font = Font("~fontName", 30);
 pitchShifterTitle.align = \center;
 currentYPos = currentYPos + titleHeight;
 /* ----- Window Size Knob ----- */
 currentXPos = 1550/2 - knobWidth;
-EZKnob(
+knob = EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Grain Size",
@@ -284,9 +287,10 @@ EZKnob(
 	// gap: an instance of Point,
 	margin: margin
 );
+knob.font = Font(~fontName, 11);
 /* ----- Pitch Dispersion Knob ----- */
 currentXPos = currentXPos + knobWidth;
-EZKnob(
+knob = EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Pitch Dispersion",
@@ -302,9 +306,10 @@ EZKnob(
 	// gap: an instance of Point,
 	margin: margin
 );
+knob.font = Font(~fontName, 11);
 /* ----- Time Dispersion Knob ----- */
 currentXPos = currentXPos + knobWidth;
-EZKnob(
+knob = EZKnob(
 	parent: window,
 	bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 	label: "Time Dispersion",
@@ -320,7 +325,7 @@ EZKnob(
 	// gap: an instance of Point,
 	margin: margin
 );
-
+knob.font = Font(~fontName, 11);
 
 /* ----- Voice Channels Section ----- */
 voiceChannels.do({ arg voiceChannel, index;
@@ -339,14 +344,14 @@ voiceChannels.do({ arg voiceChannel, index;
 		bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
 	);
 	title.string = "Voice " ++ (index + 1);
-	title.font = Font("Monaco", 30);
+	title.font = Font("~fontName", 30);
 	title.align = \center;
 
 	/* ----- First Line ----- */
 	currentYPos = currentYPos + titleHeight;
 	/* ----- Amount Knob ----- */
 	currentXPos = xOffset + (sliderWidth/2 - knobWidth);
-	EZKnob(
+	knob = EZKnob(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Gain",
@@ -364,7 +369,7 @@ voiceChannels.do({ arg voiceChannel, index;
 	);
 	/* ----- Stereo Pan Knob ----- */
 	currentXPos = currentXPos + knobWidth;
-	EZKnob(
+	knob = EZKnob(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Pan",
@@ -380,12 +385,13 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
+	knob.font = Font(~fontName, 11);
 
 	/* ----- Third Line ----- */
 	currentYPos = currentYPos + knobHeight + 30;
 	/* ----- Pitch Ratio Slider ----- */
 	currentXPos = xOffset;
-	EZSlider(
+	knob = EZSlider(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, sliderWidth, sliderHeight),
 		label: "Pitch Ratio",
@@ -402,12 +408,13 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
+	knob.font = Font(~fontName, 11);
 
 	/* ----- Fourth Line ----- */
 	currentYPos = currentYPos + sliderHeight + 30;
 	/* ----- Delay Time Knob ----- */
 	currentXPos = xOffset  + (sliderWidth/2 - knobWidth);
-	EZKnob(
+	knob = EZKnob(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Delay Time",
@@ -423,9 +430,10 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
+	knob.font = Font(~fontName, 11);
 	/* ----- Feedback Amount Knob ----- */
 	currentXPos = currentXPos + knobWidth;
-	EZKnob(
+	knob = EZKnob(
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Feedback",
@@ -441,6 +449,7 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
+	knob.font = Font(~fontName, 11);
 
 	/* ----- Fifth Line ----- */
 	/* ----- Delay Mode Selection Button ----- */
