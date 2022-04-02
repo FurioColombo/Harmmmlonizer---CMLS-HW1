@@ -1,6 +1,6 @@
 # HarMMMLonizer
 
-HarMMMLonizer is a real-time harmonizer implemented in SuperCollider. The software implements a DSP system featuring mono input and stereo output. The DSP chain includes a delay line block which supports different feedback setups. Furthermore, a graphical user interface enables the musician to control available parameters, each specifically related to pitch shifting, delay effect and master.
+HarMMMLonizer is a real-time harmonizer implemented in SuperCollider. The software implements a DSP system featuring mono input and stereo output. The DSP chain includes a delay line block which supports different feedback setups. Furthermore, a graphical user interface enables the musician to control available parameters, each specifically related to pitch shifting, delay effect and master. HarMMMLonizer supports three additional pitched voices to build the harmony, but a global variable within the code enables the programmer to change the number of voices. As the software is designed, this can be made without changing the software architecture and design (see figure above).
 
 <p align="center">
   <img width="800" height=auto src="./assets/HarmonizerGUI.png">
@@ -44,22 +44,16 @@ The graphical user interface of the software provides the musician with three ma
   - **Feedback Mode**: button enables the artist to choose between the three different feedback setups implemented: Normal, Pitch Feedback and Cross Feedback.
 
 
-## Features
-As disclosed before, the software features mono input and stereo output. The input could be an analogue instrument such as a guitar or a microphone, potentially routed through an external sound card. HarMMMLonizer supports three additional pitched voices to build the harmony, but a global variable within the code enables the programmer to change the number of voices.  As the software is designed, this can be made without changing the software architecture and design (see figure above). The application features a pitch shifter block, which is responsible for pitch shifting and single voices generation, and a delay line block, devoted to delay effect to be computed on the signal. As said before, each of the two blocks were implemented as SynthDefs and three instances for both are loaded into the server. Moreover, three different feedback modes are implemented within the delay line block. 
+### Delay Modes
+The harMMMLonizer also features three delay modes:
+- **Normal Feedback**: any input signal is routed to the Delay Line synthesizer, attenuated or boosted by feedbackAmount parameter and then again routed to the Delay Line synth, recursively.
+  
+- **Pitch Feedback**: each recursive iteration does not simply delay the signal, but applies the pitch-shift too. The result is an echo where pitch increases (or decreases) each iteration by the Pitch Ratio parameter set through the GUI. The result is finally reproduced, along with the original signal, resembling an echo-like effect.
 
-### Normal Feedback
-Any input signal is routed to the Delay Line synthesizer, attenuated or boosted by feedbackAmount parameter and then again routed to the Delay Line synth, recursively.
-
-
-### Pitch Feedback
-Each recursive iteration does not simply delay the signal, but applies the pitch-shift too. The result is an echo where pitch increases (or decreases) each iteration by the Pitch Ratio parameter set through the GUI. The result is finally reproduced, along with the original signal, resembling an echo-like effect.
+- **Cross Feedback**: the third mode was designed to generate an effect that would bounce the two output channels, exploiting stereo Pan control related to the single voice, but featuring the possibility of signal interchange between channels.
 
 
-### Cross Feedback
-The third mode was designed to generate an effect that would bounce the two output channels, exploiting stereo Pan control related to the single voice, but featuring the possibility of signal interchange between channels.
-
-
-## Software Architecture
+### Software Architecture
 The architecture of the whole software consists of two main components: the audio processing block, responsible for signal processing, and the graphical user interface (GUI) which implements the graphical component of the software itself.
 The audio processor in turn is composed of three functional blocks which are the Harmonizer, a Delay Line and a Mixer. These blocks were implemented through SuperCollider language as SynthDefs (Synthesizer Definitions) with specific available arguments with respect to what parameters the musician needs to control through the GUI. An additional block was implemented with the purpose of collecting the input signal coming from the sound card and writing it on a specific bus so that the implemented synthesizers can read it and compute processing operations on the signal.
 The graphical user interface shows three main sections, one for each harmonized voice so that the user can select the desired values for the parameters of the harmonizer and delay line. Furthermore, a mixer section is made available in order to allow the musician to control master volume of the final output and dry/wet balance between the clean input signal and harmonized voices.
