@@ -1,3 +1,5 @@
+### Casale, Colombo, Muraro, Pettenò
+
 # HarMMMLonizer  -   HW #1
 
 HarMMMLonizer is a real-time harmonizer implemented in SuperCollide. The software implements a DSP system featuring mono input and stereo output. The DSP chain includes a delay line block which supports different feedback setups. Furthermore, a graphical user interface enables the musician to control available parameters, each specifically related to pitch shifting, delay effect and master.
@@ -22,25 +24,35 @@ The audio processor in turn is composed of three functional blocks which are the
 The graphical user interface shows three main sections, one for each harmonized voice so that the user can select the desired values for the parameters of the harmonizer and delay line. Furthermore, a mixer section is made available in order to allow the musician to control master volume of the final output and dry/wet balance between the clean input signal and harmonized voices.
 The figure below illustrates the diagram of the entire software architecture.
 
-[Architecture diagram](docs/CONTRIBUTING.md)
+<p align="center">
+  <img width="650" height=auto src="https://github.com/mpetteno-polimi/CMLS-Homework1/blob/main/assets/Software%20Architecture%20(with%20GUI%20Block).jpg">
+</p>
+
 
 ## Features
 As disclosed before, the software features mono input and stereo output. The input could be an analogue instrument such as a guitar or a microphone, potentially routed through an external sound card. HarMMMLonizer supports three additional pitched voices to build the harmony, but a global variable within the code enables the programmer to change the number of voices.  As the software is designed, this can be made without changing the software architecture and design (see figure above). The application features a pitch shifter block, which is responsible for pitch shifting and single voices generation, and a delay line block, devoted to delay effect to be computed on the signal. As said before, each of the two blocks were implemented as SynthDefs and three instances for both are loaded into the server. Moreover, three different feedback modes are implemented within the delay line block. 
 
 ### Normal Feedback
 Any input signal is routed to the Delay Line synthesizer, attenuated or boosted by feedbackAmount parameter and then again routed to the Delay Line synth, recursively.
+<p align="center">
+  <img width="350" height=auto src="https://github.com/mpetteno-polimi/CMLS-Homework1/blob/main/assets/Normal%20Feedback.png">
+</p>
 
-[Architecture diagram](docs/CONTRIBUTING.md)
 
 ### Pitch Feedback
 Each recursive iteration does not simply delay the signal, but applies the pitch-shift too. The result is an echo where pitch increases (or decreases) each iteration by the Pitch Ratio parameter set through the GUI. The result is finally reproduced, along with the original signal, resembling an echo-like effect.
 
-[Architecture diagram](docs/CONTRIBUTING.md)
+<p align="center">
+  <img width="350" height=auto src="https://github.com/mpetteno-polimi/CMLS-Homework1/blob/main/assets/Pitch%20Feedback.png">
+</p>
+
 
 ### Cross Feedback
 The third mode was designed to generate an effect that would bounce the two output channels, exploiting stereo Pan control related to the single voice, but featuring the possibility of signal interchange between channels.
 
-[Architecture diagram](docs/CONTRIBUTING.md)
+<p align="center">
+  <img width="500" height=auto src="https://github.com/mpetteno-polimi/CMLS-Homework1/blob/main/assets/Cross%20Feedback.png">
+</p>
 
 
 ## Graphical User Interface
@@ -49,9 +61,12 @@ The graphical user interface of the software provides the musician with three ma
 - Pitch Shifter
 - Voices section
 
-[Architecture diagram](docs/CONTRIBUTING.md)
+<p align="center">
+  <img width="700" height=auto" src="https://github.com/mpetteno-polimi/CMLS-Homework1/blob/main/assets/HarmonizerGUI.png">
+</p>
 
-Master section: 
+
+**Master section:**
 - Gain sets master volume of the final output.
 - Dry/Wet controls dry/wet balance between the clean input signal and the pitched voices.
 - Two meters related to input and output signals respectively are rendered so that the user is aware of potential distortion.
