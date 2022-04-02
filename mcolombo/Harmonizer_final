@@ -381,6 +381,8 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
+	knob.font = Font(~fontName, 11);
+
 	/* ----- Stereo Pan Knob ----- */
 	currentXPos = currentXPos + knobWidth;
 	knob = EZKnob(
