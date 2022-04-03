@@ -16,7 +16,6 @@ s.waitForBoot({
 		~delayedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
 		~pitchShiftedVoiceBuses = Array.fill(~voiceNumber, {arg i; Bus.audio(s, 1)});
 		/* ----- Control buses ----- */
-		~pitchShifWindowSizeControlBus = Bus.control(s, 1);
 		~pitchShifTimeDispersionControlBus = Bus.control(s, 1);
 		~pitchShifPitchDispersionControlBus = Bus.control(s, 1);
 		~pitchRatioControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
@@ -66,23 +65,21 @@ s.waitForBoot({
 	(
 		b = SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 
-			var input, delayedSignal, pitchShiftInput, isPitchShiftFeedbackMode, windowSize, pitchRatio, pitchDispersion, timeDispersion, pitchShiftedSignal, isCrossFeedback, selectedMode;
+			var input, delayedSignal, pitchShiftInput, isPitchShiftFeedbackMode, pitchRatio, pitchDispersion, timeDispersion, pitchShiftedSignal, isCrossFeedback, selectedMode;
 
 			input = In.ar(~inputAudioBus, 1);
 			delayedSignal = InFeedback.ar(Select.kr(channelIndex, ~delayedVoiceBuses), 1);
 			selectedMode = In.kr(Select.kr(channelIndex, ~modeSelectionBuses), 1);
-
 			pitchShiftInput = Select.ar(selectedMode, [input, Mix.new([input, delayedSignal]), input]);
-			windowSize = In.kr(~pitchShifWindowSizeControlBus, 1);
 			pitchDispersion = In.kr(~pitchShifPitchDispersionControlBus, 1);
 			timeDispersion = In.kr(~pitchShifTimeDispersionControlBus, 1);
 			pitchRatio = In.kr(Select.kr(channelIndex, ~pitchRatioControlBuses), 1);
 			pitchShiftedSignal = PitchShift.ar(
 				in: pitchShiftInput,
-				windowSize: windowSize,
+				windowSize: 0.075,
 				pitchRatio: (2.pow(1/12)).pow(pitchRatio),
 				pitchDispersion: pitchDispersion,
-				timeDispersion: windowSize*timeDispersion,
+				timeDispersion: 0.075*timeDispersion,
 				mul: gain
 			);
 
@@ -278,25 +275,7 @@ s.waitForBoot({
 		pitchShifterTitle.font = Font("~fontName", 30);
 		pitchShifterTitle.align = \center;
 		currentYPos = currentYPos + titleHeight;
-		/* ----- Window Size Knob ----- */
-		currentXPos = 1550/2 - knobWidth;
-		knob = EZKnob(
-			parent: window,
-			bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-			label: "Grain Size",
-			controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, step: 0.01),
-			action: {arg thisKnob; ~pitchShifWindowSizeControlBus.set(thisKnob.value)},
-			initVal: 0.08,
-			initAction: true,
-			labelWidth: 60,
-			// knobSize: an instance of Point,
-			unitWidth: 0,
-			labelHeight: 20,
-			layout: \vert2,
-			// gap: an instance of Point,
-			margin: margin
-		);
-		knob.font = Font(~fontName, 11);
+		currentXPos = 1425/2 - knobWidth;
 		/* ----- Pitch Dispersion Knob ----- */
 		currentXPos = currentXPos + knobWidth;
 		knob = EZKnob(
