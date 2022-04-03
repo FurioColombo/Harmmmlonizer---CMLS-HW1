@@ -154,7 +154,6 @@ var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowH
 
 /* ----- Synths ----- */
 x = Synth(\soundIn);
-voiceChannelsGroup = ParGroup.after(x);x = Synth(\soundIn);
 voiceChannelsGroup = ParGroup.after(x);
 voiceChannels = Array.fill(~voiceNumber, {
 	arg i;
@@ -180,7 +179,7 @@ buttonHeight = 40;
 margin = 5@5;
 
 window = Window(
-	name: "HarMMMLonizer",
+	name: "Harmmmlonizer",
 	bounds: Rect(100, 100, windowWidth, windowHeight),
 	resizable: false,
 	border: true,
@@ -367,7 +366,6 @@ voiceChannels.do({ arg voiceChannel, index;
 		// gap: an instance of Point,
 		margin: margin
 	);
-	knob.font = Font(~fontName, 11);
 	/* ----- Stereo Pan Knob ----- */
 	currentXPos = currentXPos + knobWidth;
 	knob = EZKnob(
@@ -462,7 +460,6 @@ voiceChannels.do({ arg voiceChannel, index;
 	button.action = ({ arg me;
 		~modeSelectionBuses[index].set(me.value);
 	});
-	button.font = Font(~fontName, 11);
 
 });
 
