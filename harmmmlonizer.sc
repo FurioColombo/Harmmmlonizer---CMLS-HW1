@@ -155,198 +155,77 @@ s.waitForBoot({
 
 	/* ----- Synths and GUI ----- */
 	(
-		/* ----- Synths ----- */
-		x = Synth(\soundIn);
-		voiceChannelsGroup = ParGroup.after(x);
-		voiceChannels = Array.fill(~voiceNumber, {
-			arg i;
-			var pitchShifter, feedbackDelayLine;
-			pitchShifter = Synth.head(voiceChannelsGroup, \pitchShifter, [\channelIndex, i]);
-			feedbackDelayLine = Synth.after(pitchShifter, \feedbackDelayLine, [\channelIndex, i]);
-			[pitchShifter, feedbackDelayLine];
-		});
-		outputMixer = Synth.after(voiceChannelsGroup, \mixer);
+		AppClock.sched(0.05, {
+			/* ----- Synths ----- */
+			x = Synth(\soundIn);
+			voiceChannelsGroup = ParGroup.after(x);
+			voiceChannels = Array.fill(~voiceNumber, {
+				arg i;
+				var pitchShifter, feedbackDelayLine;
+				pitchShifter = Synth.head(voiceChannelsGroup, \pitchShifter, [\channelIndex, i]);
+				feedbackDelayLine = Synth.after(pitchShifter, \feedbackDelayLine, [\channelIndex, i]);
+				[pitchShifter, feedbackDelayLine];
+			});
+			outputMixer = Synth.after(voiceChannelsGroup, \mixer);
 
-		/* ----- GUI ----- */
-		Window.closeAll;
-		windowWidth = 1225;
-		windowHeight = 800;
-		titleWidth = 200;
-		titleHeight = 70;
-		knobWidth = 125;
-		knobHeight = knobWidth;
-		sliderWidth = 300;
-		sliderHeight = 50;
-		buttonWidth = 120;
-		buttonHeight = 40;
-		margin = 5@5;
+			/* ----- GUI ----- */
+			Window.closeAll;
+			windowWidth = 1225;
+			windowHeight = 800;
+			titleWidth = 200;
+			titleHeight = 70;
+			knobWidth = 125;
+			knobHeight = knobWidth;
+			sliderWidth = 300;
+			sliderHeight = 50;
+			buttonWidth = 120;
+			buttonHeight = 40;
+			margin = 5@5;
 
-		window = Window(
-			name: "HarMMMLonizer",
-			bounds: Rect(100, 100, windowWidth, windowHeight),
-			resizable: false,
-			border: true,
-			scroll: false
-		);
-		try {
-			backgroundImage = Image.open(thisProcess.nowExecutingPath.dirname +/+ "assets/images/background.png");
-		} {
-			backgroundImage = Image.color(windowWidth, windowHeight, Color.new255(140, 175, 189));
-		};
-		window.view.backgroundImage_(backgroundImage);
+			window = Window(
+				name: "HarMMMLonizer",
+				bounds: Rect(100, 100, windowWidth, windowHeight),
+				resizable: false,
+				border: true,
+				scroll: false
+			);
+			try {
+				backgroundImage = Image.open(thisProcess.nowExecutingPath.dirname +/+ "assets/images/background.png");
+			} {
+				backgroundImage = Image.color(windowWidth, windowHeight, Color.new255(140, 175, 189));
+			};
+			window.view.backgroundImage_(backgroundImage);
 
-		/* ----- Master Section ----- */
-		currentYPos = 50;
-		/* ----- Input Meter ----- */
-		currentXPos = 175;
-		ServerMeterView.new(
-			aserver: s,
-			parent: window,
-			leftUp: currentXPos@currentYPos,
-			numIns: 1,
-			numOuts: 0
-		);
-		/* ----- Title ----- */
-		currentXPos = (730 - titleWidth)/2;
-		masterTitle = StaticText(
-			parent: window,
-			bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
-		);
-		masterTitle.string = "Master";
-		masterTitle.font = Font("~fontName", 30);
-		masterTitle.align = \center;
-		currentYPos = currentYPos + titleHeight;
-		/* ----- Master Gain Knob ----- */
-		currentXPos = 730/2 - knobWidth;
-		knob = EZKnob(
-			parent: window,
-			bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-			label: "Gain",
-			controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin),
-			action: {arg thisKnob; outputMixer.set(\master, thisKnob.value)},
-			initVal: 1.0,
-			initAction: false,
-			labelWidth: 60,
-			// knobSize: an instance of Point,
-			unitWidth: 0,
-			labelHeight: 20,
-			layout: \vert2,
-			// gap: an instance of Point,
-			margin: margin
-		);
-		knob.font = Font(~fontName, 11);
-		/* ----- Dry/Wet Knob ----- */
-		currentXPos = currentXPos + knobWidth;
-		knob = EZKnob(
-			parent: window,
-			bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-			label: "Dry/Wet",
-			controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin),
-			action: {arg thisKnob; outputMixer.set(\wet, thisKnob.value)},
-			initVal: 0.5,
-			initAction: false,
-			labelWidth: 60,
-			// knobSize: an instance of Point,
-			unitWidth: 0,
-			labelHeight: 20,
-			layout: \vert2,
-			// gap: an instance of Point,
-			margin: margin
-		);
-		knob.font = Font(~fontName, 11);
-		/* ----- Output Meter ----- */
-		currentXPos = currentXPos + knobWidth;
-		currentYPos = 50;
-		ServerMeterView.new(
-			aserver: s,
-			parent: window,
-			leftUp: currentXPos@currentYPos,
-			numIns: 0,
-			numOuts: 2
-		);
-
-		/* ----- Pitch Shifter Section ----- */
-		currentXPos = (1690 - titleWidth)/2;
-		currentYPos = 50;
-		pitchShifterTitle = StaticText(
-			parent: window,
-			bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
-		);
-		pitchShifterTitle.string = "Pitch Shifter";
-		pitchShifterTitle.font = Font("~fontName", 30);
-		pitchShifterTitle.align = \center;
-		currentYPos = currentYPos + titleHeight;
-		currentXPos = 1425/2 - knobWidth;
-		/* ----- Pitch Dispersion Knob ----- */
-		currentXPos = currentXPos + knobWidth;
-		knob = EZKnob(
-			parent: window,
-			bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-			label: "Pitch Dispersion",
-			controlSpec: ControlSpec.new(minval: 0.0, maxval: 0.5, warp: \lin, step: 0.0001),
-			action: {arg thisKnob; ~pitchShifPitchDispersionControlBus.set(thisKnob.value)},
-			initVal: 0.0001,
-			initAction: true,
-			labelWidth: 60,
-			// knobSize: an instance of Point,
-			unitWidth: 0,
-			labelHeight: 20,
-			layout: \vert2,
-			// gap: an instance of Point,
-			margin: margin
-		);
-		knob.font = Font(~fontName, 11);
-		/* ----- Time Dispersion Knob ----- */
-		currentXPos = currentXPos + knobWidth;
-		knob = EZKnob(
-			parent: window,
-			bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-			label: "Time Dispersion",
-			controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, step: 0.01),
-			action: {arg thisKnob; ~pitchShifTimeDispersionControlBus.set(thisKnob.value)},
-			initVal: 1.0,
-			initAction: true,
-			labelWidth: 60,
-			// knobSize: an instance of Point,
-			unitWidth: 0,
-			labelHeight: 20,
-			layout: \vert2,
-			// gap: an instance of Point,
-			margin: margin
-		);
-		knob.font = Font(~fontName, 11);
-
-		/* ----- Voice Channels Section ----- */
-		voiceChannels.do({ arg voiceChannel, index;
-
-			var title, pitchShifter, feedbackDelayLine, pitchfbModeCheckbox, crossfbModeCheckbox;
-			xOffset = 55 + (400*index);
-
-			pitchShifter = voiceChannel[0];
-			feedbackDelayLine = voiceChannel[1];
-
+			/* ----- Master Section ----- */
+			currentYPos = 50;
+			/* ----- Input Meter ----- */
+			currentXPos = 175;
+			ServerMeterView.new(
+				aserver: s,
+				parent: window,
+				leftUp: currentXPos@currentYPos,
+				numIns: 1,
+				numOuts: 0
+			);
 			/* ----- Title ----- */
-			currentXPos = xOffset + ((sliderWidth - titleWidth)/2);
-			currentYPos = 280;
-			title = StaticText(
+			currentXPos = (730 - titleWidth)/2;
+			masterTitle = StaticText(
 				parent: window,
 				bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
 			);
-			title.string = "Voice " ++ (index + 1);
-			title.font = Font("~fontName", 30);
-			title.align = \center;
-
-			/* ----- First Line ----- */
+			masterTitle.string = "Master";
+			masterTitle.font = Font("~fontName", 30);
+			masterTitle.align = \center;
 			currentYPos = currentYPos + titleHeight;
-			/* ----- Amount Knob ----- */
-			currentXPos = xOffset + (sliderWidth/2 - knobWidth);
+			/* ----- Master Gain Knob ----- */
+			currentXPos = 730/2 - knobWidth;
 			knob = EZKnob(
 				parent: window,
 				bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 				label: "Gain",
 				controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin),
-				action: {arg thisKnob; pitchShifter.set(\gain, thisKnob.value)},
-				initVal: 0.0,
+				action: {arg thisKnob; outputMixer.set(\master, thisKnob.value)},
+				initVal: 1.0,
 				initAction: false,
 				labelWidth: 60,
 				// knobSize: an instance of Point,
@@ -357,15 +236,76 @@ s.waitForBoot({
 				margin: margin
 			);
 			knob.font = Font(~fontName, 11);
-			/* ----- Stereo Pan Knob ----- */
+			/* ----- Dry/Wet Knob ----- */
 			currentXPos = currentXPos + knobWidth;
 			knob = EZKnob(
 				parent: window,
 				bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-				label: "Pan",
-				controlSpec: ControlSpec.new(minval: -1.0, maxval: 1.0, warp: \lin),
-				action: {arg thisKnob; ~stereoPanControlBuses[index].set(thisKnob.value)},
-				initVal: 0.0,
+				label: "Dry/Wet",
+				controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin),
+				action: {arg thisKnob; outputMixer.set(\wet, thisKnob.value)},
+				initVal: 0.5,
+				initAction: false,
+				labelWidth: 60,
+				// knobSize: an instance of Point,
+				unitWidth: 0,
+				labelHeight: 20,
+				layout: \vert2,
+				// gap: an instance of Point,
+				margin: margin
+			);
+			knob.font = Font(~fontName, 11);
+			/* ----- Output Meter ----- */
+			currentXPos = currentXPos + knobWidth;
+			currentYPos = 50;
+			ServerMeterView.new(
+				aserver: s,
+				parent: window,
+				leftUp: currentXPos@currentYPos,
+				numIns: 0,
+				numOuts: 2
+			);
+
+			/* ----- Pitch Shifter Section ----- */
+			currentXPos = (1690 - titleWidth)/2;
+			currentYPos = 50;
+			pitchShifterTitle = StaticText(
+				parent: window,
+				bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
+			);
+			pitchShifterTitle.string = "Pitch Shifter";
+			pitchShifterTitle.font = Font("~fontName", 30);
+			pitchShifterTitle.align = \center;
+			currentYPos = currentYPos + titleHeight;
+			currentXPos = 1425/2 - knobWidth;
+			/* ----- Pitch Dispersion Knob ----- */
+			currentXPos = currentXPos + knobWidth;
+			knob = EZKnob(
+				parent: window,
+				bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+				label: "Pitch Dispersion",
+				controlSpec: ControlSpec.new(minval: 0.0, maxval: 0.5, warp: \lin, step: 0.0001),
+				action: {arg thisKnob; ~pitchShifPitchDispersionControlBus.set(thisKnob.value)},
+				initVal: 0.0001,
+				initAction: true,
+				labelWidth: 60,
+				// knobSize: an instance of Point,
+				unitWidth: 0,
+				labelHeight: 20,
+				layout: \vert2,
+				// gap: an instance of Point,
+				margin: margin
+			);
+			knob.font = Font(~fontName, 11);
+			/* ----- Time Dispersion Knob ----- */
+			currentXPos = currentXPos + knobWidth;
+			knob = EZKnob(
+				parent: window,
+				bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+				label: "Time Dispersion",
+				controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, step: 0.01),
+				action: {arg thisKnob; ~pitchShifTimeDispersionControlBus.set(thisKnob.value)},
+				initVal: 1.0,
 				initAction: true,
 				labelWidth: 60,
 				// knobSize: an instance of Point,
@@ -377,86 +317,148 @@ s.waitForBoot({
 			);
 			knob.font = Font(~fontName, 11);
 
-			/* ----- Third Line ----- */
-			currentYPos = currentYPos + knobHeight + 30;
-			/* ----- Pitch Ratio Slider ----- */
-			currentXPos = xOffset;
-			knob = EZSlider(
-				parent: window,
-				bounds: Rect(currentXPos, currentYPos, sliderWidth, sliderHeight),
-				label: "Pitch Ratio",
-				controlSpec: ControlSpec(minval: -24, maxval: 24, warp: \lin, step: 1, units: \st),
-				action: {arg thisSlider; ~pitchRatioControlBuses[index].set(thisSlider.value)},
-				initVal: 0,
-				initAction: true,
-				labelWidth: 60,
-				numberWidth: 60,
-				// knobSize: an instance of Point,
-				unitWidth: 30,
-				labelHeight: 20,
-				layout: \line2,
-				// gap: an instance of Point,
-				margin: margin
-			);
-			knob.font = Font(~fontName, 11);
+			/* ----- Voice Channels Section ----- */
+			voiceChannels.do({ arg voiceChannel, index;
 
-			/* ----- Fourth Line ----- */
-			currentYPos = currentYPos + sliderHeight + 30;
-			/* ----- Delay Time Knob ----- */
-			currentXPos = xOffset  + (sliderWidth/2 - knobWidth);
-			knob = EZKnob(
-				parent: window,
-				bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-				label: "Delay Time",
-				controlSpec: ControlSpec.new(minval: ~minDelayTime, maxval: ~maxDelayTime, warp: \lin),
-				action: {arg thisKnob; feedbackDelayLine.set(\delayTime, thisKnob.value)},
-				initVal: ~minDelayTime,
-				initAction: false,
-				labelWidth: 60,
-				// knobSize: an instance of Point,
-				unitWidth: 0,
-				labelHeight: 20,
-				layout: \vert2,
-				// gap: an instance of Point,
-				margin: margin
-			);
-			knob.font = Font(~fontName, 11);
-			/* ----- Feedback Amount Knob ----- */
-			currentXPos = currentXPos + knobWidth;
-			knob = EZKnob(
-				parent: window,
-				bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
-				label: "Feedback",
-				controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin),
-				action: {arg thisKnob; feedbackDelayLine.set(\feedbackAmount, thisKnob.value)},
-				initVal: 0.0,
-				initAction: false,
-				labelWidth: 60,
-				// knobSize: an instance of Point,
-				unitWidth: 0,
-				labelHeight: 20,
-				layout: \vert2,
-				// gap: an instance of Point,
-				margin: margin
-			);
-			knob.font = Font(~fontName, 11);
+				var title, pitchShifter, feedbackDelayLine, pitchfbModeCheckbox, crossfbModeCheckbox;
+				xOffset = 55 + (400*index);
 
-			/* ----- Fifth Line ----- */
-			/* ----- Delay Mode Selection Button ----- */
-			currentYPos = currentYPos + knobHeight + 30;
-			button = Button.new(
-				parent: window,
-				bounds: Rect(currentXPos - (buttonWidth/2) - 2.5, currentYPos, buttonWidth, buttonHeight));
-			button.states = [["Normal", Color.black], ["Pitch Feedback", Color.black], ["Cross Feedback", Color.black]];
-			button.action = ({ arg me;
-				~modeSelectionBuses[index].set(me.value);
+				pitchShifter = voiceChannel[0];
+				feedbackDelayLine = voiceChannel[1];
+
+				/* ----- Title ----- */
+				currentXPos = xOffset + ((sliderWidth - titleWidth)/2);
+				currentYPos = 280;
+				title = StaticText(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, titleWidth, titleHeight)
+				);
+				title.string = "Voice " ++ (index + 1);
+				title.font = Font("~fontName", 30);
+				title.align = \center;
+
+				/* ----- First Line ----- */
+				currentYPos = currentYPos + titleHeight;
+				/* ----- Amount Knob ----- */
+				currentXPos = xOffset + (sliderWidth/2 - knobWidth);
+				knob = EZKnob(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+					label: "Gain",
+					controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin),
+					action: {arg thisKnob; pitchShifter.set(\gain, thisKnob.value)},
+					initVal: 0.0,
+					initAction: false,
+					labelWidth: 60,
+					// knobSize: an instance of Point,
+					unitWidth: 0,
+					labelHeight: 20,
+					layout: \vert2,
+					// gap: an instance of Point,
+					margin: margin
+				);
+				knob.font = Font(~fontName, 11);
+				/* ----- Stereo Pan Knob ----- */
+				currentXPos = currentXPos + knobWidth;
+				knob = EZKnob(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+					label: "Pan",
+					controlSpec: ControlSpec.new(minval: -1.0, maxval: 1.0, warp: \lin),
+					action: {arg thisKnob; ~stereoPanControlBuses[index].set(thisKnob.value)},
+					initVal: 0.0,
+					initAction: true,
+					labelWidth: 60,
+					// knobSize: an instance of Point,
+					unitWidth: 0,
+					labelHeight: 20,
+					layout: \vert2,
+					// gap: an instance of Point,
+					margin: margin
+				);
+				knob.font = Font(~fontName, 11);
+
+				/* ----- Third Line ----- */
+				currentYPos = currentYPos + knobHeight + 30;
+				/* ----- Pitch Ratio Slider ----- */
+				currentXPos = xOffset;
+				knob = EZSlider(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, sliderWidth, sliderHeight),
+					label: "Pitch Ratio",
+					controlSpec: ControlSpec(minval: -24, maxval: 24, warp: \lin, step: 1, units: \st),
+					action: {arg thisSlider; ~pitchRatioControlBuses[index].set(thisSlider.value)},
+					initVal: 0,
+					initAction: true,
+					labelWidth: 60,
+					numberWidth: 60,
+					// knobSize: an instance of Point,
+					unitWidth: 30,
+					labelHeight: 20,
+					layout: \line2,
+					// gap: an instance of Point,
+					margin: margin
+				);
+				knob.font = Font(~fontName, 11);
+
+				/* ----- Fourth Line ----- */
+				currentYPos = currentYPos + sliderHeight + 30;
+				/* ----- Delay Time Knob ----- */
+				currentXPos = xOffset  + (sliderWidth/2 - knobWidth);
+				knob = EZKnob(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+					label: "Delay Time",
+					controlSpec: ControlSpec.new(minval: ~minDelayTime, maxval: ~maxDelayTime, warp: \lin),
+					action: {arg thisKnob; feedbackDelayLine.set(\delayTime, thisKnob.value)},
+					initVal: ~minDelayTime,
+					initAction: false,
+					labelWidth: 60,
+					// knobSize: an instance of Point,
+					unitWidth: 0,
+					labelHeight: 20,
+					layout: \vert2,
+					// gap: an instance of Point,
+					margin: margin
+				);
+				knob.font = Font(~fontName, 11);
+				/* ----- Feedback Amount Knob ----- */
+				currentXPos = currentXPos + knobWidth;
+				knob = EZKnob(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
+					label: "Feedback",
+					controlSpec: ControlSpec.new(minval: 0.0, maxval: 2.0, warp: \lin),
+					action: {arg thisKnob; feedbackDelayLine.set(\feedbackAmount, thisKnob.value)},
+					initVal: 0.0,
+					initAction: false,
+					labelWidth: 60,
+					// knobSize: an instance of Point,
+					unitWidth: 0,
+					labelHeight: 20,
+					layout: \vert2,
+					// gap: an instance of Point,
+					margin: margin
+				);
+				knob.font = Font(~fontName, 11);
+
+				/* ----- Fifth Line ----- */
+				/* ----- Delay Mode Selection Button ----- */
+				currentYPos = currentYPos + knobHeight + 30;
+				button = Button.new(
+					parent: window,
+					bounds: Rect(currentXPos - (buttonWidth/2) - 2.5, currentYPos, buttonWidth, buttonHeight));
+				button.states = [["Normal", Color.black], ["Pitch Feedback", Color.black], ["Cross Feedback", Color.black]];
+				button.action = ({ arg me;
+					~modeSelectionBuses[index].set(me.value);
+				});
+				button.font = Font(~fontName, 11);
+
 			});
-			button.font = Font(~fontName, 11);
 
+			window.front;
+			window.onClose_({x.free; voiceChannelsGroup.freeAll; outputMixer.free;});
 		});
-
-		window.front;
-		window.onClose_({x.free; voiceChannelsGroup.freeAll; outputMixer.free;});
 	);
 });
 
