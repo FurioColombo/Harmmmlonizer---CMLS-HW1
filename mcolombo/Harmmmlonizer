@@ -26,16 +26,6 @@ try {
 }
 );
 
-(
-var myPath;
-myPath = PathName.new(".../");
-myPath.filesDo{|afile| afile.postln};
-)
-File.getcwd
-
-// Use the path of the class file for the class you're coding
- v = thisProcess.nowExecutingPath.dirname;
-
 
 /* ----- Sound Input -----
 Reads the audio from the hardware input
