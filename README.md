@@ -23,7 +23,7 @@ So before running the application follow these steps:
 
 To run the application, boot the server and run each block of code in order to load the required synthDefs into the server. Then, run the second to last block of code to instanciate all the synthesizers and launch the graphical user interface.
 
-The very last block of code draws the UGen Graphs throug the sc3-dot Quark.
+The very last block of code draws the UGen Graphs through the sc3-dot Quark.
 
 
 ## Graphical User Interface
