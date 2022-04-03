@@ -8,6 +8,7 @@ s.waitForBoot({
 	(
 		/* ----- Global settings ----- */
 		~voiceNumber = 3;
+		~windowSize = 0.075;
 		~minDelayTime = s.options.blockSize/s.sampleRate;
 		~maxDelayTime = 2.0;
 		~fontName = "Arial Black";
@@ -76,10 +77,10 @@ s.waitForBoot({
 			pitchRatio = In.kr(Select.kr(channelIndex, ~pitchRatioControlBuses), 1);
 			pitchShiftedSignal = PitchShift.ar(
 				in: pitchShiftInput,
-				windowSize: 0.075,
+				windowSize: ~windowSize,
 				pitchRatio: (2.pow(1/12)).pow(pitchRatio),
 				pitchDispersion: pitchDispersion,
-				timeDispersion: 0.075*timeDispersion,
+				timeDispersion: ~windowSize*timeDispersion,
 				mul: gain
 			);
 
