@@ -2,6 +2,7 @@
 (
 /* ----- Global settings ----- */
 ~voiceNumber = 3;
+~minDelayTime = Server.default.options.blockSize/Server.default.sampleRate;
 ~maxDelayTime = 2.0;
 ~fontName = "Arial Black";
 /* ----- Audio buses ----- */
@@ -87,7 +88,7 @@ b = SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 A feedback delay line that uses the FbNode class of the Feedback Quark: the input feedback signal
 to the node changes accordingly to the selected mode. */
 (
-c = SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedbackAmount = 0.0;
+c = SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = ~minDelayTime, feedbackAmount = 0.0;
 
 	var input, feedbackNode, delayedSignal, feedbackSignal, pitchShiftedSignal, selectedMode, channelFeedbackBus;
 
@@ -423,9 +424,9 @@ voiceChannels.do({ arg voiceChannel, index;
 		parent: window,
 		bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 		label: "Delay Time",
-		controlSpec: ControlSpec.new(minval: 0.014, maxval: ~maxDelayTime, warp: \lin),
+		controlSpec: ControlSpec.new(minval: ~minDelayTime, maxval: ~maxDelayTime, warp: \lin),
 		action: {arg thisKnob; feedbackDelayLine.set(\delayTime, thisKnob.value)},
-		initVal: 0.014,
+		initVal: ~minDelayTime,
 		initAction: false,
 		labelWidth: 60,
 		// knobSize: an instance of Point,
