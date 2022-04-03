@@ -84,7 +84,7 @@ b = SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 );
 
 /* ----- Feedback Delay Line -----
-A feedback delay line that uses the quarks FbNode: the input feedback signal
+A feedback delay line that uses the FbNode class of the Feedback Quark: the input feedback signal
 to the node changes accordingly to the selected mode. */
 (
 c = SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedbackAmount = 0.0;
