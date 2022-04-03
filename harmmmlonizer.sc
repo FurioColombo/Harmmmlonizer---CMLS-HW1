@@ -21,7 +21,7 @@
 Reads the audio from the hardware input
 an writes it to inputAudioBus */
 (
-SynthDef.new(\soundIn, {
+a = SynthDef.new(\soundIn, {
 	Out.ar(
 		bus: ~inputAudioBus,
 		channelsArray: SoundIn.ar(0);
@@ -57,7 +57,7 @@ SynthDef.new(\pitchDetection, {
 /* ----- Pitch Shifter -----
 Pitch shift the input signal based on the selected mode. */
 (
-SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
+b = SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 
 	var input, delayedSignal, pitchShiftInput, isPitchShiftFeedbackMode, windowSize, pitchRatio, pitchDispersion, timeDispersion, pitchShiftedSignal, isCrossFeedback, selectedMode;
 
@@ -87,7 +87,7 @@ SynthDef.new(\pitchShifter, { arg channelIndex, gain = 0.0;
 A feedback delay line that uses the quarks FbNode: the input feedback signal
 to the node changes accordingly to the selected mode. */
 (
-SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedbackAmount = 0.0;
+c = SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedbackAmount = 0.0;
 
 	var input, feedbackNode, delayedSignal, feedbackSignal, pitchShiftedSignal, selectedMode, channelFeedbackBus;
 
@@ -124,7 +124,7 @@ SynthDef.new(\feedbackDelayLine, { arg channelIndex, delayTime = 0.014, feedback
 /* ----- Mixer -----
 Mixes the mono input and the pitch shifted voices to a stereo ouput. */
 (
-SynthDef.new(\mixer, { arg master = 1, wet = 0.5;
+d = SynthDef.new(\mixer, { arg master = 1, wet = 0.5;
 	var stereoInput, stereoOutput, voiceStereoSignals, selectedMode;
 
 	stereoInput = Pan2.ar((1 - wet) * In.ar(~inputAudioBus, 1), 0.0);
@@ -150,7 +150,7 @@ SynthDef.new(\mixer, { arg master = 1, wet = 0.5;
 
 /* ----- Synths and GUI ----- */
 (
-var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, pitchShifterTitle, button, buttonWidth, buttonHeight, knob;
+var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowHeight, titleWidth, titleHeight, knobWidth, knobHeight, sliderWidth, sliderHeight, margin, voiceSectionWidth, voiceSectionYOffset, voiceSectionMargin, currentXPos, currentYPos, xOffset, masterTitle, pitchShifterTitle, button, buttonWidth, buttonHeight, knob, backgroundImage;
 
 /* ----- Synths ----- */
 x = Synth(\soundIn);
@@ -185,7 +185,12 @@ window = Window(
 	border: true,
 	scroll: false
 );
-window.view.background = Color.new255(140, 175, 189);
+try {
+	backgroundImage = Image.open(thisProcess.nowExecutingPath.dirname +/+ "assets/images/background.png");
+} {
+	backgroundImage = Image.color(windowWidth, windowHeight, Color.new255(140, 175, 189));
+};
+window.view.backgroundImage_(backgroundImage);
 
 /* ----- Master Section ----- */
 currentYPos = 50;
@@ -468,4 +473,19 @@ voiceChannels.do({ arg voiceChannel, index;
 window.front;
 window.onClose_({x.free; voiceChannelsGroup.freeAll; outputMixer.free;});
 
-)
+);
+
+/* ----- UGen Graphs -----
+Draws the SynthDefs UGen Graphs with the sc3-dot Quark.
+Graphs are saved in SVG format in the assets/graphs directory. */
+(
+Dot.directory = thisProcess.nowExecutingPath.dirname +/+ "assets/graphs";
+Dot.fontSize = 16; /* default = 10 */
+Dot.useSplines = true; /* default = false */
+Dot.drawInputName = true; /* default = false */
+Dot.useTables = true; /* default = true */
+Dot.renderMode = 'svg'; // run dot to generate a .pdf file and view that
+
+a.draw; b.draw; c.draw; d.draw;
+);
+
