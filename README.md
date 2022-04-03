@@ -35,7 +35,6 @@ The graphical user interface of the software provides the musician with three ma
   - **Meters**: shows input and output levels.
 
 - **Pitch shifter**:
-  - **Grain Size**: sets the size of the grain window in seconds.
   - **Pitch Dispersion**: sets the maximum random deviation that of the pitch from the pitchRatio.
   - **Time Dispersion**: adds a random offset to the delay of each grain. Can be used to alleviate the effect due to uniform grain placement. 
 
