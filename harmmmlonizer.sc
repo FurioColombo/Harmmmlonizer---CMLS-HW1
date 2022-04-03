@@ -80,7 +80,7 @@ s.waitForBoot({
 			pitchShiftedSignal = PitchShift.ar(
 				in: pitchShiftInput,
 				windowSize: windowSize,
-				pitchRatio: (1.059463094).pow(pitchRatio),
+				pitchRatio: (2.pow(1/12)).pow(pitchRatio),
 				pitchDispersion: pitchDispersion,
 				timeDispersion: windowSize*timeDispersion,
 				mul: gain
@@ -284,10 +284,10 @@ s.waitForBoot({
 			parent: window,
 			bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 			label: "Grain Size",
-			controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, step: 0.005),
+			controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, step: 0.01),
 			action: {arg thisKnob; ~pitchShifWindowSizeControlBus.set(thisKnob.value)},
-			initVal: 0.075,
-			initAction: false,
+			initVal: 0.08,
+			initAction: true,
 			labelWidth: 60,
 			// knobSize: an instance of Point,
 			unitWidth: 0,
