@@ -19,7 +19,6 @@ m = PathName.new("./");
 m.folders;
 /* ----- Assets ----- */
 try {
-	postln(thisProcess.nowExecutingPath.dirname ++ "/assets/background.png");
 	~image = Image.open(thisProcess.nowExecutingPath.dirname +/+ "assets/background.png");
 } {
 	~image = Image.color(1225, 800, Color.new255(140, 175, 189));
