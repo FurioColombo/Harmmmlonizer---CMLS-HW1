@@ -15,9 +15,27 @@
 ~pitchRatioControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 ~stereoPanControlBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 ~modeSelectionBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
+m = PathName.new("./");
+m.folders;
 /* ----- Assets ----- */
-~image = Image.open("C:Users/marco/Downloads/background.png");
+try {
+	postln(thisProcess.nowExecutingPath.dirname ++ "/assets/background.png");
+	~image = Image.open(thisProcess.nowExecutingPath.dirname +/+ "assets/background.png");
+} {
+	~image = Image.color(1225, 800, Color.new255(140, 175, 189));
+}
 );
+
+(
+var myPath;
+myPath = PathName.new(".../");
+myPath.filesDo{|afile| afile.postln};
+)
+File.getcwd
+
+// Use the path of the class file for the class you're coding
+ v = thisProcess.nowExecutingPath.dirname;
+
 
 /* ----- Sound Input -----
 Reads the audio from the hardware input
@@ -156,7 +174,6 @@ var voiceChannelsGroup, voiceChannels, outputMixer, window, windowWidth, windowH
 
 /* ----- Synths ----- */
 x = Synth(\soundIn);
-voiceChannelsGroup = ParGroup.after(x);x = Synth(\soundIn);
 voiceChannelsGroup = ParGroup.after(x);
 voiceChannels = Array.fill(~voiceNumber, {
 	arg i;
@@ -182,14 +199,15 @@ buttonHeight = 40;
 margin = 5@5;
 
 window = Window(
-	name: "Harmmmlonizer",
+	name: "HarMMMLonizer",
 	bounds: Rect(100, 100, windowWidth, windowHeight),
 	resizable: false,
 	border: true,
 	scroll: false
 );
-//window.view.background = Color.new255(140, 175, 189);
-window.view.backgroundImage_(~image); 
+window.view.background = Color.new255(140, 175, 189);
+window.view.backgroundImage_(~image);
+
 /* ----- Master Section ----- */
 currentYPos = 50;
 /* ----- Input Meter ----- */
@@ -464,6 +482,7 @@ voiceChannels.do({ arg voiceChannel, index;
 	button.action = ({ arg me;
 		~modeSelectionBuses[index].set(me.value);
 	});
+	button.font = Font(~fontName, 11);
 
 });
 
