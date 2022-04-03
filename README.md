@@ -6,7 +6,7 @@ HarMMMLonizer is a real-time harmonizer implemented in SuperCollider. The softwa
   <img width="800" height=auto src="./assets/images/HarmonizerGUI.png">
 </p>
 
-## Requirements
+## Requirements and First Run
 To run the code and start experimenting with HarMMMLonizer, the user should first install the Feedback Quark. A complete guide to SuperCollider Quarks and their installation is available at the following link: 
 [Quarks guide](https://github.com/supercollider-quarks/quarks)
 The easiest way to install Quarks is by running `Quarks.gui` and select the Feedback Quark for installation.
@@ -20,6 +20,10 @@ So before running the application follow these steps:
 2. Open the file `Fb.sc` inside the Feedback folder
 3. Comment out lines 94 to 97 and save
 4. From SuperCollider menu launch `Language` -> `Recompile Class Library`
+
+To run the application, boot the server and run each block of code in order to load the required synthDefs into the server. Then, run the second to last block of code to instanciate all the synthesizers and launch the graphical user interface.
+
+The last block of code draws the UGen Graphs throug the sc3-dot Quark.
 
 
 ## Graphical User Interface
