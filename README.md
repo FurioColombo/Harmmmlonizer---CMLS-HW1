@@ -64,7 +64,7 @@ The figure below illustrates the diagram of the entire software architecture.
 
 
 <p align="center">
-  <img width="650" height=auto src="./assets/images/SoftwareArchitecture.jpg">
+  <img width="650" height=auto src="./assets/images/SoftwareArchitecture.png">
 </p>
 
 ***You’re now ready to jump into wonderful HarMMMLonizer world. Enjoy the experience!***
