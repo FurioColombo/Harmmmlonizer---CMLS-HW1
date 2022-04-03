@@ -21,7 +21,7 @@ So before running the application follow these steps:
 3. Comment out lines 94 to 97 and save
 4. From SuperCollider menu launch `Language` -> `Recompile Class Library`
 
-To run the application, boot the server and run each block of code in order to load the required synthDefs into the server. Then, run the second to last block of code to instantiate all the synthesizers and launch the graphical user interface.
+To run the application, boot the server and run each block of code in order to load the required synthDefs into the server. Then, run the second to last block of code to instantiate all the needed synthesizers and launch the graphical user interface.
 
 The very last block of code draws the UGen Graphs through the sc3-dot Quark.
 
