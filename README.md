@@ -3,7 +3,7 @@
 HarMMMLonizer is a real-time harmonizer implemented in SuperCollider. The software implements a DSP system featuring mono input and stereo output. The DSP chain includes a delay line block which supports different feedback setups. Furthermore, a graphical user interface enables the musician to control available parameters, each specifically related to pitch shifting, delay effect and master. HarMMMLonizer supports three additional pitched voices to build the harmony, but a global variable within the code enables the programmer to change the number of voices. As the software is designed, this can be made without changing the software architecture and design (see figure above).
 
 <p align="center">
-  <img width="800" height=auto src="./assets/images/HarmonizerGUI.png">
+  <img width="800" height=auto src="./assets/images/fullHarmonizerGui.png">
 </p>
 
 ## Requirements and First Run
@@ -35,7 +35,6 @@ The graphical user interface of the software provides the musician with three ma
   - **Meters**: shows input and output levels.
 
 - **Pitch shifter**:
-  - **Grain Size**: sets the size of the grain window in seconds.
   - **Pitch Dispersion**: sets the maximum random deviation that of the pitch from the pitchRatio.
   - **Time Dispersion**: adds a random offset to the delay of each grain. Can be used to alleviate the effect due to uniform grain placement. 
 
