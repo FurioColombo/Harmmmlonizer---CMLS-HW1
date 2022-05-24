@@ -74,7 +74,7 @@ s.waitForBoot({
 			[1, 1, 1, 1, 1, 1, 1]  // Octave
 		];
 		/* ----- Buffers ----- */
-		~inputBuffer = Buffer.read(s, thisProcess.nowExecutingPath.dirname +/+ "loops/a11wlk01.wav");
+		~inputBuffer = Buffer.read(s, thisProcess.nowExecutingPath.dirname +/+ "loops/MixolydianNoDelayD.wav");
 		~chromaticFreqs = [261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88];
 		~chromaticFreqsBuffer = Buffer.loadCollection(s, ~chromaticFreqs, 1);
 	);
@@ -90,7 +90,7 @@ s.waitForBoot({
 				channelsArray: PlayBuf.ar(
 					numChannels: 1,
 					bufnum: ~inputBuffer,
-					rate: 1.0,
+					rate: BufRateScale.kr(~inputBuffer),
 					trigger: 1.0,
 					startPos: 0.0,
 					loop: 1.0,
@@ -106,7 +106,7 @@ s.waitForBoot({
 		b = SynthDef.new(\pitchDetector, {
 			var input, freq, hasFreq;
 			input = In.ar(~inputAudioBus, 1);
-			# freq, hasFreq = Pitch.kr(
+			/*# freq, hasFreq = Pitch.kr(
 				in: input,
 				initFreq: 0,
 				minFreq: 60.0,
@@ -118,7 +118,16 @@ s.waitForBoot({
 				peakThreshold: 0.5,
 				downSample: 1,
 				clar: 0
+			);*/
+			# freq, hasFreq = Tartini.kr(
+				in: input,
+				threshold: 0.93,
+				n: 2048,
+				k: 0,
+				overlap: 1024,
+				smallCutoff: 0
 			);
+			freq.poll;
 			Out.kr(~pitchDetectionControlBus, Select.kr(hasFreq, [0, freq]));
 		}).add
 	);
@@ -196,6 +205,7 @@ s.waitForBoot({
 			grainsPeriod = In.kr(~grainsPeriodControlBus, 1);
 			timeDispersion = In.kr(~timeDispersionControlBus, 1);
 			pitchRatio = In.kr(Select.kr(channelIndex, ~pitchRatioControlBuses), 1);
+
 			pitchShiftedSignal = PitchShiftPA.ar(
 				in: pitchShiftInput,
 				freq: detectedFreq,
@@ -206,7 +216,14 @@ s.waitForBoot({
 				grainsPeriod: grainsPeriod,
 				timeDispersion: timeDispersion
 			);
-
+			/*pitchShiftedSignal = PitchShift.ar(
+				in: pitchShiftInput,
+				windowSize: 0.075,
+				pitchRatio: (2.pow(1/12)).pow(pitchRatio),
+				pitchDispersion: 0.0001,
+				timeDispersion: 0.075*1.0,
+				mul: gain
+			);*/
 			Out.ar(Select.kr(channelIndex, ~pitchShiftedVoiceBuses), gain*pitchShiftedSignal);
 		}).add;
 	);
@@ -474,7 +491,7 @@ s.waitForBoot({
 				parent: window,
 				bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 				label: "Formant Ratio",
-				controlSpec: ControlSpec.new(minval: 0.0, maxval: 4, warp: \lin, step: 0.1),
+				controlSpec: ControlSpec.new(minval: nil, maxval: 4, warp: \lin, step: 0.1),
 				action: {arg thisKnob; ~formantRatioControlBus.set(thisKnob.value)},
 				initVal: 1.0,
 				initAction: true,
@@ -512,9 +529,9 @@ s.waitForBoot({
 				parent: window,
 				bounds: Rect(currentXPos, currentYPos, knobWidth, knobHeight),
 				label: "Time Dispersion",
-				controlSpec: ControlSpec.new(minval: 0.0, maxval: 1.0, warp: \lin, step: 0.01),
+				controlSpec: ControlSpec.new(minval: nil, maxval: 1.0, warp: \lin, step: 0.01),
 				action: {arg thisKnob; ~timeDispersionControlBus.set(thisKnob.value)},
-				initVal: 0.0,
+				initVal: nil,
 				initAction: true,
 				labelWidth: 60,
 				// knobSize: an instance of Point,
@@ -667,7 +684,7 @@ s.waitForBoot({
 			});
 
 			window.front;
-			window.onClose_({x.free; voiceChannelsGroup.freeAll; outputMixer.free;});
+			window.onClose_({x.free; voiceChannelsGroup.freeAll; outputMixer.free; Server.killAll;});
 		});
 	);
 });
