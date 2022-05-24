@@ -27,6 +27,8 @@ s.waitForBoot({
 		~keyControlBus = Bus.control(s, 1);
 		~scaleControlBus = Bus.control(s, 1);
 		~voiceIntervalBusses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
+		~octaveUpDownBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
+		~octaveNumberBuses = Array.fill(~voiceNumber, {arg i; Bus.control(s, 1)});
 		/* ----- Keys and intervals ----- */
 		~keys = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
 		~scales = [
@@ -71,7 +73,6 @@ s.waitForBoot({
 			[1, 1, 1, 1, 0, 0, 0], // FIfth
 			[1, 1, 1, 1, 1, 0, 0], // Sixth
 			[1, 1, 1, 1, 1, 1, 0], // Seventh
-			[1, 1, 1, 1, 1, 1, 1]  // Octave
 		];
 		/* ----- Buffers ----- */
 		~inputBuffer = Buffer.read(s, thisProcess.nowExecutingPath.dirname +/+ "loops/MixolydianNoDelayD.wav");
@@ -104,9 +105,9 @@ s.waitForBoot({
 	Detects the pitch of the input signal. */
 	(
 		b = SynthDef.new(\pitchDetector, {
-			var input, freq, hasFreq;
+			var input, freq, hasFreq, outputSelector;
 			input = In.ar(~inputAudioBus, 1);
-			/*# freq, hasFreq = Pitch.kr(
+			# freq, hasFreq = Pitch.kr(
 				in: input,
 				initFreq: 0,
 				minFreq: 60.0,
@@ -118,17 +119,16 @@ s.waitForBoot({
 				peakThreshold: 0.5,
 				downSample: 1,
 				clar: 0
-			);*/
-			# freq, hasFreq = Tartini.kr(
+			);
+			/*# freq, hasFreq = Tartini.kr(
 				in: input,
 				threshold: 0.93,
 				n: 2048,
 				k: 0,
 				overlap: 1024,
 				smallCutoff: 0
-			);
-			freq.poll;
-			Out.kr(~pitchDetectionControlBus, Select.kr(hasFreq, [0, freq]));
+			);*/
+			Out.kr(~pitchDetectionControlBus, freq);
 		}).add
 	);
 
@@ -138,7 +138,7 @@ s.waitForBoot({
 	and accordingly to the specified key, scale and voice intervals. */
 	(
 		c = SynthDef.new(\pitchRatioManager, { arg channelIndex;
-			var detectedFreq, key, scale, referenceFreqIndex, referenceFreq, freqsLocBuffer, currentPos, pitchRatio, voiceInterval, rootIndex, firstInterval, rotatedScale, intervalMask, maskedScale;
+			var detectedFreq, key, scale, referenceFreqIndex, referenceFreq, freqsLocBuffer, currentPos, pitchRatio, voiceInterval, rootIndex, firstInterval, rotatedScale, intervalMask, maskedScale, octaveNumber, octaveUpDown;
 
 			// Read current key and scale
 			key = In.kr(~keyControlBus, 1);
@@ -177,6 +177,12 @@ s.waitForBoot({
 			maskedScale = intervalMask * rotatedScale;
 			// Sum all the elements in the masked array to get the pitch ratio (in semitones)
 			pitchRatio = maskedScale.sum;
+			// Apply selected octaves
+			octaveNumber = In.kr(Select.kr(channelIndex, ~octaveNumberBuses), 1);
+			pitchRatio = pitchRatio + (12*octaveNumber);
+			// Choose Up/Down octave (0:Up - 1:Down)
+			octaveUpDown = In.kr(Select.kr(channelIndex, ~octaveUpDownBuses), 1);
+			pitchRatio = Select.kr(octaveUpDown, [pitchRatio, -1*pitchRatio]);
 
 			// DEBUG
 			// rootIndex.poll((HPZ1.kr(rootIndex).abs > 0) + Impulse.kr(0));
@@ -205,7 +211,6 @@ s.waitForBoot({
 			grainsPeriod = In.kr(~grainsPeriodControlBus, 1);
 			timeDispersion = In.kr(~timeDispersionControlBus, 1);
 			pitchRatio = In.kr(Select.kr(channelIndex, ~pitchRatioControlBuses), 1);
-
 			pitchShiftedSignal = PitchShiftPA.ar(
 				in: pitchShiftInput,
 				freq: detectedFreq,
@@ -220,9 +225,9 @@ s.waitForBoot({
 				in: pitchShiftInput,
 				windowSize: 0.075,
 				pitchRatio: (2.pow(1/12)).pow(pitchRatio),
-				pitchDispersion: 0.0001,
-				timeDispersion: 0.075*1.0,
-				mul: gain
+				pitchDispersion: 0.0,
+				timeDispersion: 0.075,
+				mul: 1.0
 			);*/
 			Out.ar(Select.kr(channelIndex, ~pitchShiftedVoiceBuses), gain*pitchShiftedSignal);
 		}).add;
@@ -312,7 +317,7 @@ s.waitForBoot({
 			/* ----- GUI ----- */
 			Window.closeAll;
 			windowWidth = 1625;
-			windowHeight = 800;
+			windowHeight = 860;
 			titleWidth = 200;
 			titleHeight = 70;
 			knobWidth = 125;
@@ -613,8 +618,8 @@ s.waitForBoot({
 					parent: window,
 					bounds: Rect(currentXPos, currentYPos, sliderWidth, sliderHeight),
 					label: "Voice Interval",
-					controlSpec: ControlSpec(minval: -16, maxval: 16, warp: \lin, step: 1, units: \interval),
-					action: {arg thisSlider; ~voiceIntervalBusses[index].set(thisSlider.value); },
+					controlSpec: ControlSpec(minval: 1, maxval: 7, warp: \lin, step: 1),
+					action: {arg thisSlider; ~voiceIntervalBusses[index].set(thisSlider.value - 1); },
 					initVal: 0,
 					initAction: true,
 					labelWidth: 60,
@@ -629,7 +634,39 @@ s.waitForBoot({
 				knob.font = Font(~fontName, 11);
 
 				/* ----- Fourth Line ----- */
-				currentYPos = currentYPos + sliderHeight + 30;
+				currentYPos = currentYPos + sliderHeight + 7;
+				/* ----- Ocatve Label ----- */
+				currentXPos = xOffset + 7;
+				title = StaticText(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, 70, 30)
+				);
+				title.string = "Octave";
+				title.font = Font(~fontName, 11);
+				title.align = \left;
+				/* ----- Octave Up/Down ----- */
+				currentXPos = currentXPos + 70;
+				button = Button.new(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, 30, 30));
+				button.states = [["+", Color.black], ["-", Color.black]];
+				button.action = ({ arg me;
+					~octaveUpDownBuses[index].set(me.value);
+				});
+				button.font = Font(~fontName, 11);
+				/* ----- Octave Number ----- */
+				currentXPos = currentXPos + 40;
+				button = Button.new(
+					parent: window,
+					bounds: Rect(currentXPos, currentYPos, 30, 30));
+				button.states = [["0", Color.black], ["1", Color.black], ["2", Color.black]];
+				button.action = ({ arg me;
+					~octaveNumberBuses[index].set(me.value);
+				});
+				button.font = Font(~fontName, 11);
+
+				/* ----- Fifth Line ----- */
+				currentYPos = currentYPos + 60;
 				/* ----- Delay Time Knob ----- */
 				currentXPos = xOffset  + (sliderWidth/2 - knobWidth);
 				knob = EZKnob(
