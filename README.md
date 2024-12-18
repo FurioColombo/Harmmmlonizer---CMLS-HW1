@@ -68,4 +68,9 @@ The figure below illustrates the diagram of the entire software architecture.
   <img width="650" height=auto src="./assets/images/SoftwareArchitecture.png">
 </p>
 
-***You’re now ready to jump into wonderful HarMMMLonizer world. Enjoy the experience!***
+
+## Authors 
+- [Lelio Casale](https://github.com/Leliocasale) 
+- [Marco Furio Colombo](https://github.com/FurioColombo)
+- [Marco Muraro](https://github.com/marcomuraro4)
+- [Matteo Pettenò](https://github.com/mpetteno-polimi)
