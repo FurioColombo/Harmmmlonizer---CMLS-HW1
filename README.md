@@ -5,6 +5,9 @@ HarMMMLonizer is a real-time harmonizer implemented in SuperCollider. The softwa
 <p align="center">
   <img width="800" height=auto src="./assets/images/fullHarmonizerGui.png">
 </p>
+<p align="center">
+  <a href="https://youtu.be/M7niXbSUGBo">Video Demo</a>
+</p>
 
 ## Requirements and First Run
 To run the code and start experimenting with HarMMMLonizer, the user should first install the Feedback Quark. A complete guide to SuperCollider Quarks and their installation is available at the following link: 
